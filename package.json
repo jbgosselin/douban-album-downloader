@@ -1,0 +1,33 @@
+{
+  "name": "douban-album-downloader",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist-win": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.gitlab.dennajort.douban-album-downloader"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/dennajort/douban-album-downloader.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "homepage": "https://gitlab.com/dennajort/douban-album-downloader#readme",
+  "devDependencies": {
+    "electron": "^7.1.11",
+    "electron-builder": "^22.3.2",
+    "eslint": "^6.8.0"
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "bootstrap": "^4.4.1",
+    "jquery": "^3.4.1",
+    "jsdom": "^16.0.1",
+    "popper.js": "^1.16.1"
+  }
+}

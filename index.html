@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hello World!</title>
+    <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="row">
+            <div class="col">
+                <h1>Douban Album Downloader</h1>
+            </div>
+        </div>
+
+        <div class="row" id="inputStep">
+            <div class="col">
+                <form action="javascript:onDownloadClicked()">
+                    <div class="form-group">
+                        <label for="inputUrl">Album URL</label>
+                        <input type="text" class="form-control" id="inputUrl" aria-describedby="inputUrlHelp">
+                        <small id="inputUrlHelp" class="form-text text-muted">
+                            Should be something like https://www.douban.com/photos/album/34084898/
+                        </small>
+                    </div>
+                    <button class="btn btn-primary">Download</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="row d-none" id="downloadStep">
+            <div class="col-2">
+                <p>
+                    Downloading...
+                </p>
+            </div>
+            <div class="col-10">
+                <div class="progress">
+                    <div id="downloadProgress" class="progress-bar progress-bar-striped progress-bar-animated"
+                        role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="1"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row d-none" id="finishedStep">
+            <div class="col">
+                <p>
+                    Download Finished !
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script>let $ = require('jquery');</script>
+    <script>require('popper.js');</script>
+    <script>require('bootstrap');</script>
+
+    <script>
+        const { ipcRenderer } = require('electron')
+
+        async function onDownloadClicked() {
+            let { canceled } = await ipcRenderer.invoke('startDownload', {
+                inputUrl: $("#inputUrl").val(),
+            });
+
+            if (canceled === true) {
+                return;
+            }
+
+            setDownloadProgress({ valueNow: 0, valueMax: 1 });
+
+            $("#inputStep").addClass("d-none");
+            $("#downloadStep").removeClass("d-none");
+        }
+
+        function setDownloadProgress({ valueNow, valueMax }) {
+            $("#downloadProgress").attr({
+                "aria-valuenow": valueNow,
+                "aria-valuemax": valueMax,
+            }).css({
+                "width": `${valueNow * 100 / valueMax}%`,
+            });
+        }
+
+        ipcRenderer.on("downloadProgress", (_, args) => setDownloadProgress(args));
+
+        ipcRenderer.on("downloadFinished", (_, { outputDir }) => {
+            $("#downloadStep").addClass("d-none");
+            $("#finishedStep").removeClass("d-none");
+        });
+    </script>
+</body>
+
+</html>

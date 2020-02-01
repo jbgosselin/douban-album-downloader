@@ -1,0 +1,12 @@
+{
+    "extends": "eslint:recommended",
+    "env": {
+        "es8": true,
+        "browser": true,
+        "node": true
+    },
+    "rules": {
+        "semi": "error",
+        "prefer-arrow-callback": "warn"
+    }
+}
