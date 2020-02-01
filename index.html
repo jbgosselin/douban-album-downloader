@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <title>Douban Album Downloader</title>
     <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
     <!-- Bootstrap CSS -->
@@ -26,7 +26,7 @@
                         <label for="inputUrl">Album URL</label>
                         <input type="text" class="form-control" id="inputUrl" aria-describedby="inputUrlHelp">
                         <small id="inputUrlHelp" class="form-text text-muted">
-                            Should be something like https://www.douban.com/photos/album/34084898/
+                            Should be something like <code>https://www.douban.com/photos/album/34084898/</code>
                         </small>
                     </div>
                     <button class="btn btn-primary">Download</button>
@@ -49,10 +49,14 @@
         </div>
 
         <div class="row d-none" id="finishedStep">
-            <div class="col">
+            <div class="col-6">
                 <p>
                     Download Finished !
                 </p>
+            </div>
+
+            <div class="col-6">
+                <button onclick="restartProgram();" type="button" class="btn btn-primary">Restart</button>
             </div>
         </div>
 
@@ -68,11 +72,11 @@
         const { ipcRenderer } = require('electron')
 
         async function onDownloadClicked() {
-            let { canceled } = await ipcRenderer.invoke('startDownload', {
+            let { ok } = await ipcRenderer.invoke('startDownload', {
                 inputUrl: $("#inputUrl").val(),
             });
 
-            if (canceled === true) {
+            if (ok !== true) {
                 return;
             }
 
@@ -97,6 +101,12 @@
             $("#downloadStep").addClass("d-none");
             $("#finishedStep").removeClass("d-none");
         });
+
+        function restartProgram() {
+            $("#inputUrl").val("");
+            $("#finishedStep").addClass("d-none");
+            $("#inputStep").removeClass("d-none");
+        }
     </script>
 </body>
 

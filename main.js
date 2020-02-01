@@ -14,7 +14,8 @@ function createWindow() {
     // Create the browser window.
     mainWindow = new BrowserWindow({
         width: 800,
-        height: 250,
+        height: 400,
+        autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,
         }
@@ -69,12 +70,24 @@ ipcMain.handle('startDownload', async (_, { inputUrl }) => {
         parsedUrl = new URL(inputUrl);
     } catch (error) {
         console.error(error);
-        return { canceled: false, error: "Cannot parse URL" };
+        await dialog.showMessageBox(mainWindow, {
+            type: "error",
+            title: "Error",
+            message: "Cannot parse URL",
+            buttons: ["Close"]
+        });
+        return { ok: false };
     }
 
     let match = findAlbumRegex.exec(parsedUrl.pathname);
     if (match === null) {
-        return { canceled: false, error: "Not a douban album URL" };
+        await dialog.showMessageBox(mainWindow, {
+            type: "error",
+            title: "Error",
+            message: "Not a douban album URL",
+            buttons: ["Close"]
+        });
+        return { ok: false };
     }
 
     const albumId = match[1];
@@ -84,7 +97,7 @@ ipcMain.handle('startDownload', async (_, { inputUrl }) => {
     });
 
     if (canceled === true || filePaths.length <= 0) {
-        return { canceled: true, error: null };
+        return { ok: false };
     }
 
     const outputDir = path.join(filePaths[0], albumId);
@@ -94,13 +107,20 @@ ipcMain.handle('startDownload', async (_, { inputUrl }) => {
     } catch (error) {
         if (error.code !== 'EEXIST') {
             console.error(error);
-            return { canceled: false, error: "Cannot create output directory" };
+            await dialog.showMessageBox(mainWindow, {
+                type: "error",
+                title: "Error",
+                message: "Cannot create output directory",
+                detail: outputDir,
+                buttons: ["Close"]
+            });
+            return { ok: false };
         }
     }
 
     setImmediate(() => downloadAlbum(albumId, outputDir));
 
-    return { canceled: false, error: null };
+    return { ok: true };
 });
 
 const imageSizeRegex = /photo\/\w+\/public/
