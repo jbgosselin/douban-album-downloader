@@ -123,7 +123,7 @@ ipcMain.handle('startDownload', async (_, { inputUrl }) => {
     return { ok: true };
 });
 
-const imageSizeRegex = /photo\/\w+\/public/
+const imageSizeRegex = /photo\/\w+\/public/;
 
 async function downloadAlbum(albumId, outputDir) {
     const agent = axios.create({
@@ -147,8 +147,8 @@ async function downloadAlbum(albumId, outputDir) {
         mainWindow.send("downloadProgress", { valueNow, valueMax });
     }
 
-    while (true) {
-        console.log(`Fetching ${albumId} ${valueMax}`)
+    for (; ;) {
+        console.log(`Fetching ${albumId} ${valueMax}`);
         let res = await agent.get(`/photos/album/${albumId}`, { params: { "m_start": valueMax } });
         const dom = new JSDOM(res.data);
         const $ = jQuery(dom.window);
