@@ -1,12 +1,14 @@
 {
   "name": "douban-album-downloader",
   "version": "1.1.0",
+  "private": true,
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist-win": "electron-builder --win"
+    "start": "npm run build && electron .",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist-win": "npm run build && electron-builder --win",
+    "build": "webpack --config webpack.config.js"
   },
   "build": {
     "appId": "com.gitlab.dennajort.douban-album-downloader"
@@ -21,7 +23,9 @@
   "devDependencies": {
     "electron": "^7.1.11",
     "electron-builder": "^22.3.2",
-    "eslint": "^6.8.0"
+    "eslint": "^6.8.0",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
   },
   "dependencies": {
     "axios": "^0.19.2",

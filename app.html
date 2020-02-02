@@ -21,7 +21,7 @@
 
         <div class="row" id="inputStep">
             <div class="col">
-                <form action="javascript:onDownloadClicked()">
+                <form action="javascript:App.onDownloadClicked()">
                     <div class="form-group">
                         <label for="inputUrl">Album URL</label>
                         <input type="text" class="form-control" id="inputUrl" aria-describedby="inputUrlHelp">
@@ -56,58 +56,13 @@
             </div>
 
             <div class="col-6">
-                <button onclick="restartProgram();" type="button" class="btn btn-primary">Restart</button>
+                <button onclick="App.restartProgram();" type="button" class="btn btn-primary">Restart</button>
             </div>
         </div>
 
     </div>
 
-    <!-- Bootstrap Optional JavaScript -->
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script>let $ = require('jquery');</script>
-    <script>require('popper.js');</script>
-    <script>require('bootstrap');</script>
-
-    <script>
-        const { ipcRenderer } = require('electron')
-
-        async function onDownloadClicked() {
-            let { ok } = await ipcRenderer.invoke('startDownload', {
-                inputUrl: $("#inputUrl").val(),
-            });
-
-            if (ok !== true) {
-                return;
-            }
-
-            setDownloadProgress({ valueNow: 0, valueMax: 1 });
-
-            $("#inputStep").addClass("d-none");
-            $("#downloadStep").removeClass("d-none");
-        }
-
-        function setDownloadProgress({ valueNow, valueMax }) {
-            $("#downloadProgress").attr({
-                "aria-valuenow": valueNow,
-                "aria-valuemax": valueMax,
-            }).css({
-                "width": `${valueNow * 100 / valueMax}%`,
-            });
-        }
-
-        ipcRenderer.on("downloadProgress", (_, args) => setDownloadProgress(args));
-
-        ipcRenderer.on("downloadFinished", (_, { outputDir }) => {
-            $("#downloadStep").addClass("d-none");
-            $("#finishedStep").removeClass("d-none");
-        });
-
-        function restartProgram() {
-            $("#inputUrl").val("");
-            $("#finishedStep").addClass("d-none");
-            $("#inputStep").removeClass("d-none");
-        }
-    </script>
+    <script src="./build/app.js"></script>
 </body>
 
 </html>
