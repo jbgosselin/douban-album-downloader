@@ -5,6 +5,7 @@ const jQuery = require('jquery');
 const { JSDOM } = require('jsdom');
 const fs = require('fs').promises;
 const path = require('path');
+const UserAgent = require('user-agents');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -126,9 +127,11 @@ ipcMain.handle('startDownload', async (_, { inputUrl }) => {
 const imageSizeRegex = /photo\/\w+\/public/;
 
 async function downloadAlbum(albumId, outputDir) {
+    const userAgent = new UserAgent({ deviceCategory: 'desktop' }).toString();
+    console.log(`User-Agent: ${userAgent}`);
     const agent = axios.create({
         baseURL: 'https://www.douban.com',
-        headers: { 'User-Agent': 'curl/7.68.0' }
+        headers: { 'User-Agent': userAgent }
     });
 
     let valueNow = 0;
