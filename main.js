@@ -26,7 +26,7 @@ function createWindow() {
     mainWindow.loadFile('app.html');
 
     // Open the DevTools.
-    // mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();
 
     // Emitted when the window is closed.
     mainWindow.on('closed', () => {
@@ -80,7 +80,7 @@ ipcMain.handle('startDownload', async (_, { inputUrl }) => {
         return { ok: false };
     }
 
-    let match = findAlbumRegex.exec(parsedUrl.pathname);
+    const match = findAlbumRegex.exec(parsedUrl.pathname);
     if (match === null) {
         await dialog.showMessageBox(mainWindow, {
             type: "error",
@@ -93,7 +93,7 @@ ipcMain.handle('startDownload', async (_, { inputUrl }) => {
 
     const albumId = match[1];
 
-    let { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
         properties: ["openDirectory"],
     });
 
@@ -136,11 +136,11 @@ async function downloadAlbum(albumId, outputDir) {
 
     let valueNow = 0;
     let valueMax = 0;
-    let imagesPromises = [];
+    const imagesPromises = [];
 
     async function downloadImage(imgUrl) {
         console.log(`Fetching ${imgUrl}`);
-        let res = await agent.get(imgUrl, { responseType: 'arraybuffer' });
+        const res = await agent.get(imgUrl, { responseType: 'arraybuffer' });
         console.log(`Finished fetching ${imgUrl}`);
         const imgName = path.basename(imgUrl);
         const imgPath = path.join(outputDir, imgName);
@@ -152,7 +152,7 @@ async function downloadAlbum(albumId, outputDir) {
 
     for (; ;) {
         console.log(`Fetching ${albumId} ${valueMax}`);
-        let res = await agent.get(`/photos/album/${albumId}`, { params: { "m_start": valueMax } });
+        const res = await agent.get(`/photos/album/${albumId}`, { params: { "m_start": valueMax } });
         const dom = new JSDOM(res.data);
         const $ = jQuery(dom.window);
 
@@ -162,7 +162,7 @@ async function downloadAlbum(albumId, outputDir) {
         }
 
         images.each((_, img) => {
-            let imgUrl = img.src.replace(imageSizeRegex, 'photo/xl/public');
+            const imgUrl = img.src.replace(imageSizeRegex, 'photo/xl/public');
             imagesPromises.push(downloadImage(imgUrl));
             valueMax += 1;
         });
