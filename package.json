@@ -1,6 +1,6 @@
 {
   "name": "douban-album-downloader",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -56,6 +56,7 @@
   },
   "dependencies": {
     "axios": "^0.19.2",
+    "electron-context-menu": "^0.16.0",
     "electron-store": "^5.1.0"
   }
 }
