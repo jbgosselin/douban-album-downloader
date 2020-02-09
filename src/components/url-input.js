@@ -40,7 +40,8 @@ class URLInput extends React.Component {
                                 <Form.Text className="text-muted">
                                     Should be something like<br />
                                     <code>https://www.douban.com/photos/album/34084898/</code><br />
-                                    <code>https://site.douban.com/108128/widget/photos/1164317/</code>
+                                    <code>https://site.douban.com/108128/widget/photos/1164317/</code><br />
+                                    <code>https://site.douban.com/108128/widget/public_album/161454/</code>
                                 </Form.Text>
                             </Form.Group>
                             <Button type="submit" variant="primary">Download</Button>
@@ -67,6 +68,12 @@ const availableSites = [
     {
         host: 'site.douban.com',
         path: /^\/\d+\/widget\/photos\/(\d+)/,
+        imgSelector: 'div.photo-item img',
+        pageKey: 'start',
+    },
+    {
+        host: 'site.douban.com',
+        path: /^\/\d+\/widget\/public_album\/(\d+)/,
         imgSelector: 'div.photo-item img',
         pageKey: 'start',
     },
