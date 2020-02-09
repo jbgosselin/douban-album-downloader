@@ -1,43 +1,43 @@
-import $ from 'jquery';
-import 'popper.js';
-import 'bootstrap';
+import React from 'react';
+import { connect } from "react-redux";
+import { Container, Row, Col } from 'react-bootstrap';
 
-const { ipcRenderer } = require('electron');
+import URLInput from './components/url-input';
+import DownloadList from './components/download-list';
 
-export async function onDownloadClicked() {
-    let { ok } = await ipcRenderer.invoke('startDownload', {
-        inputUrl: $("#inputUrl").val(),
-    });
+import { STEPS } from './constants';
 
-    if (ok !== true) {
-        return;
-    }
+const Title = () => (
+    <Row>
+        <Col>
+            <h1>Douban Album Downloader</h1>
+        </Col>
+    </Row>
+);
 
-    setDownloadProgress({ valueNow: 0, valueMax: 1 });
+class Application extends React.Component {
+    render = () => (
+        <Container>
+            <Title />
+            {this.chooseStepComponent()}
+        </Container>
+    );
 
-    $("#inputStep").addClass("d-none");
-    $("#downloadStep").removeClass("d-none");
+
+    chooseStepComponent = () => {
+        switch (this.props.step) {
+            case STEPS.INPUT_URL:
+                return <URLInput />;
+            case STEPS.DOWNLOADING:
+                return <DownloadList />;
+            default:
+                return null;
+        }
+    };
 }
 
-function setDownloadProgress({ valueNow, valueMax }) {
-    $("#downloadProgress").attr({
-        "aria-valuenow": valueNow,
-        "aria-valuemax": valueMax,
-    }).css({
-        "width": `${valueNow * 100 / valueMax}%`,
-    });
-}
-
-ipcRenderer.on("downloadProgress", (_, args) => setDownloadProgress(args));
-
-ipcRenderer.on("downloadFinished", (_, { outputDir }) => {
-    $("#downloadStep").addClass("d-none");
-    $("#finishedStep").removeClass("d-none");
-    console.log(outputDir);
-});
-
-export function restartProgram() {
-    $("#inputUrl").val("");
-    $("#finishedStep").addClass("d-none");
-    $("#inputStep").removeClass("d-none");
-}
+const mapStateToProps = state => {
+    const { step } = state.step;
+    return { step };
+};
+export default connect(mapStateToProps)(Application);

@@ -1,21 +1,21 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const axios = require('axios').default;
-const jQuery = require('jquery');
-const { JSDOM } = require('jsdom');
 const fs = require('fs').promises;
 const path = require('path');
-const UserAgent = require('user-agents');
+const axios = require('axios').default;
+const Store = require('electron-store');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+const store = new Store();
 
 function createWindow() {
     // Create the browser window.
+    const { width, height } = store.get('mainWindow.bounds') || {};
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 400,
+        width,
+        height,
         autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,
@@ -27,6 +27,11 @@ function createWindow() {
 
     // Open the DevTools.
     // mainWindow.webContents.openDevTools();
+
+    mainWindow.on('close', () => {
+        const { width, height } = mainWindow.getBounds();
+        store.set('mainWindow.bounds', { width, height });
+    });
 
     // Emitted when the window is closed.
     mainWindow.on('closed', () => {
@@ -62,46 +67,16 @@ app.on('activate', () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
-const findAlbumRegex = /^\/photos\/album\/(\d+)/;
-
-ipcMain.handle('startDownload', async (_, { inputUrl }) => {
-
-    let parsedUrl;
-    try {
-        parsedUrl = new URL(inputUrl);
-    } catch (error) {
-        console.error(error);
-        await dialog.showMessageBox(mainWindow, {
-            type: "error",
-            title: "Error",
-            message: "Cannot parse URL",
-            buttons: ["Close"]
-        });
-        return { ok: false };
-    }
-
-    let match = findAlbumRegex.exec(parsedUrl.pathname);
-    if (match === null) {
-        await dialog.showMessageBox(mainWindow, {
-            type: "error",
-            title: "Error",
-            message: "Not a douban album URL",
-            buttons: ["Close"]
-        });
-        return { ok: false };
-    }
-
-    const albumId = match[1];
-
-    let { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+ipcMain.handle('createOutputDirectory', async (_, { dirName }) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
         properties: ["openDirectory"],
     });
 
     if (canceled === true || filePaths.length <= 0) {
-        return { ok: false };
+        return { canceled: true };
     }
 
-    const outputDir = path.join(filePaths[0], albumId);
+    const outputDir = path.join(filePaths[0], dirName);
 
     try {
         await fs.mkdir(outputDir);
@@ -115,60 +90,23 @@ ipcMain.handle('startDownload', async (_, { inputUrl }) => {
                 detail: outputDir,
                 buttons: ["Close"]
             });
-            return { ok: false };
+            return { canceled: true };
         }
     }
 
-    setImmediate(() => downloadAlbum(albumId, outputDir));
-
-    return { ok: true };
+    return { outputDir, canceled: false };
 });
 
-const imageSizeRegex = /photo\/\w+\/public/;
-
-async function downloadAlbum(albumId, outputDir) {
-    const userAgent = new UserAgent({ deviceCategory: 'desktop' }).toString();
-    console.log(`User-Agent: ${userAgent}`);
-    const agent = axios.create({
-        baseURL: 'https://www.douban.com',
-        headers: { 'User-Agent': userAgent }
-    });
-
-    let valueNow = 0;
-    let valueMax = 0;
-    let imagesPromises = [];
-
-    async function downloadImage(imgUrl) {
+ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
+    try {
         console.log(`Fetching ${imgUrl}`);
-        let res = await agent.get(imgUrl, { responseType: 'arraybuffer' });
+        const res = await axios.get(imgUrl, { responseType: 'arraybuffer' });
         console.log(`Finished fetching ${imgUrl}`);
-        const imgName = path.basename(imgUrl);
-        const imgPath = path.join(outputDir, imgName);
-        await fs.writeFile(imgPath, res.data);
-        console.log(`Finished writefile ${imgPath}`);
-        valueNow += 1;
-        mainWindow.send("downloadProgress", { valueNow, valueMax });
+        await fs.writeFile(outputPath, res.data);
+        console.log(`Finished writefile ${outputPath}`);
+    } catch (error) {
+        return { error: `${error}` };
     }
 
-    for (; ;) {
-        console.log(`Fetching ${albumId} ${valueMax}`);
-        let res = await agent.get(`/photos/album/${albumId}`, { params: { "m_start": valueMax } });
-        const dom = new JSDOM(res.data);
-        const $ = jQuery(dom.window);
-
-        const images = $("div.photo_wrap img");
-        if (images.length === 0) {
-            break;
-        }
-
-        images.each((_, img) => {
-            let imgUrl = img.src.replace(imageSizeRegex, 'photo/xl/public');
-            imagesPromises.push(downloadImage(imgUrl));
-            valueMax += 1;
-        });
-    }
-
-    console.log(`Waiting all downloads finished`);
-    await Promise.all(imagesPromises);
-    mainWindow.send("downloadFinished", { outputDir });
-}
+    return { error: null };
+});

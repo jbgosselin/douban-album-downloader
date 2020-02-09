@@ -9,7 +9,10 @@
         "ecmaVersion": 8
     },
     "rules": {
-        "semi": "error",
-        "prefer-arrow-callback": "warn"
+        "semi": "warn",
+        "prefer-arrow-callback": "warn",
+        "no-var": "warn",
+        "prefer-const": "warn",
+        "no-duplicate-imports": "warn"
     }
 }
