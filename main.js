@@ -4,11 +4,14 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios').default;
 const Store = require('electron-store');
+const contextMenu = require('electron-context-menu');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 const store = new Store();
+
+contextMenu({});
 
 function createWindow() {
     // Create the browser window.
