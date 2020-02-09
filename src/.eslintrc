@@ -9,5 +9,8 @@
     "plugins": [
         "react"
     ],
-    "parser": "babel-eslint"
+    "parser": "babel-eslint",
+    "rules": {
+        "react/prop-types": "off"
+    }
 }

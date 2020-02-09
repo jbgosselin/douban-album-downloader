@@ -5,13 +5,21 @@
   "main": "main.js",
   "scripts": {
     "start": "npm run build && electron .",
-    "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder",
-    "dist-win": "npm run build && electron-builder --win",
-    "build": "webpack --config webpack.config.js"
+    "pack": "npm run build-release && electron-builder --dir",
+    "dist": "npm run build-release && electron-builder",
+    "dist-win": "npm run build-release && electron-builder --win",
+    "build": "webpack --config webpack.dev.js",
+    "build-release": "webpack --config webpack.prod.js"
   },
   "build": {
-    "appId": "com.gitlab.dennajort.douban-album-downloader"
+    "appId": "com.gitlab.dennajort.douban-album-downloader",
+    "files": [
+      "package.json",
+      "README.md",
+      "main.js",
+      "app.html",
+      "build/**/*.js"
+    ]
   },
   "repository": {
     "type": "git",
@@ -33,20 +41,21 @@
     "electron-builder": "^22.3.2",
     "eslint": "^6.8.0",
     "eslint-plugin-react": "^7.18.3",
-    "popper.js": "^1.16.1",
+    "formik": "^2.1.4",
+    "jquery": "^3.4.1",
     "react": "^16.12.0",
     "react-bootstrap": "^1.0.0-beta.16",
     "react-dom": "^16.12.0",
     "react-redux": "^7.1.3",
     "redux": "^4.0.5",
+    "redux-thunk": "^2.3.0",
     "style-loader": "^1.1.3",
-    "user-agents": "^1.0.520",
     "webpack": "^4.41.5",
-    "webpack-cli": "^3.3.10"
+    "webpack-cli": "^3.3.10",
+    "webpack-merge": "^4.2.2"
   },
   "dependencies": {
     "axios": "^0.19.2",
-    "jquery": "^3.4.1",
-    "jsdom": "^16.0.1"
+    "electron-store": "^5.1.0"
   }
 }

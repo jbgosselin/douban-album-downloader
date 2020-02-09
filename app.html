@@ -10,60 +10,6 @@
 
 <body>
     <div id="root"></div>
-
-
-    <h1>Prout</h1>
-    <div class="container">
-
-        <div class="row">
-            <div class="col">
-                <h1>Douban Album Downloader</h1>
-            </div>
-        </div>
-
-        <div class="row" id="inputStep">
-            <div class="col">
-                <form action="javascript:App.onDownloadClicked()">
-                    <div class="form-group">
-                        <label for="inputUrl">Album URL</label>
-                        <input type="text" class="form-control" id="inputUrl" aria-describedby="inputUrlHelp">
-                        <small id="inputUrlHelp" class="form-text text-muted">
-                            Should be something like <code>https://www.douban.com/photos/album/34084898/</code>
-                        </small>
-                    </div>
-                    <button class="btn btn-primary">Download</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="row d-none" id="downloadStep">
-            <div class="col-2">
-                <p>
-                    Downloading...
-                </p>
-            </div>
-            <div class="col-10">
-                <div class="progress">
-                    <div id="downloadProgress" class="progress-bar progress-bar-striped progress-bar-animated"
-                        role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="1"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row d-none" id="finishedStep">
-            <div class="col-6">
-                <p>
-                    Download Finished !
-                </p>
-            </div>
-
-            <div class="col-6">
-                <button onclick="App.restartProgram();" type="button" class="btn btn-primary">Restart</button>
-            </div>
-        </div>
-
-    </div>
-
     <script src="./build/app.js"></script>
 </body>
 
