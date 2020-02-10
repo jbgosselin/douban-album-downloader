@@ -31,9 +31,10 @@ export const doneAllDownloads = () => ({
     type: DONE_ALL_DOWNLOADS,
 });
 
-export const restartApp = () => ({
-    type: RESTART_APP,
-});
+export const restartApp = () => {
+    window.location.reload();
+    return { type: RESTART_APP };
+};
 
 const imageSizeRegex = /photo\/\w+\/public/;
 

@@ -1,4 +1,4 @@
-import { START_DOWNLOADING_ALBUM, RESTART_APP } from "../actionTypes";
+import { START_DOWNLOADING_ALBUM } from "../actionTypes";
 import { STEPS } from '../../constants';
 
 const initialState = {
@@ -12,10 +12,6 @@ export default function (state = initialState, action) {
                 ...state,
                 step: STEPS.DOWNLOADING,
             };
-        }
-        case RESTART_APP: {
-            window.location.reload();
-            return state;
         }
         default:
             return state;

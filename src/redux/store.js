@@ -1,7 +1,6 @@
 import thunkMiddleware from 'redux-thunk';
 import { createStore, applyMiddleware } from "redux";
 import rootReducer from "./reducers";
-import addEvents from './events';
 
 const logger = ({ getState }) => next => action => {
     if (process.env.NODE_ENV !== "production") {
@@ -27,7 +26,5 @@ const store = createStore(
         logger,
     )
 );
-
-addEvents(store.dispatch);
 
 export default store;
