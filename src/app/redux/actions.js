@@ -1,5 +1,3 @@
-import { ipcRenderer } from 'electron';
-import path from 'path';
 import axios from 'axios';
 import $ from 'jquery';
 
@@ -39,7 +37,7 @@ export const restartApp = () => {
 const imageSizeRegex = /photo\/\w+\/public/;
 
 export const startDownloadAlbum = ({ albumId, albumUrl, pageKey, imgSelector }) => async dispatch => {
-    const { outputDir, canceled } = await ipcRenderer.invoke('createOutputDirectory', {
+    const { outputDir, canceled } = await window.electron.createOutputDirectory({
         dirName: albumId,
     });
 
@@ -53,11 +51,11 @@ export const startDownloadAlbum = ({ albumId, albumUrl, pageKey, imgSelector }) 
     const imagesPromises = [];
 
     const downloadImage = async ({ imgUrl }) => {
-        const imgName = path.basename(imgUrl);
-        const outputPath = path.join(outputDir, imgName);
+        const imgName = window.electron.path.basename(imgUrl);
+        const outputPath = window.electron.path.join(outputDir, imgName);
         dispatch(startDownloadingImage({ uri: imgUrl, name: imgName, outputPath }));
 
-        const { error } = await downloadSingleImage({ imgUrl, outputPath });
+        const { error } = await window.electron.downloadSingleImage({ imgUrl, outputPath });
         if (error) {
             console.error(error);
             dispatch(doneDownloadingImage({ name: imgName, status: DOWNLOAD_STATUS.ERROR }));
@@ -88,14 +86,6 @@ export const startDownloadAlbum = ({ albumId, albumUrl, pageKey, imgSelector }) 
     dispatch(doneAllDownloads());
 };
 
-export const downloadSingleImage = async ({ imgUrl, outputPath }) => {
-    const { error } = await ipcRenderer.invoke('downloadSingleImage', {
-        imgUrl, outputPath
-    });
-
-    return { error };
-};
-
 export const retryFailedImages = () => (
     async function (dispatch, getState) {
         const { images, imagesIds } = getState().downloads;
@@ -105,7 +95,7 @@ export const retryFailedImages = () => (
         dispatch({ type: RETRY_FAILED_DOWNLOAD });
 
         const downloadImage = async ({ uri, name, outputPath }) => {
-            const { error } = await downloadSingleImage({ imgUrl: uri, outputPath });
+            const { error } = await window.electron.downloadSingleImage({ imgUrl: uri, outputPath });
             if (error) {
                 console.error(error);
                 dispatch(doneDownloadingImage({ name, status: DOWNLOAD_STATUS.ERROR }));

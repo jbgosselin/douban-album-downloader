@@ -1,6 +1,8 @@
-const merge = require('webpack-merge');
+const { merge } = require('webpack-merge');
 const common = require('./webpack.common.js');
 
-module.exports = merge(common, {
+module.exports = common.map(c => merge(c, {
     mode: 'production',
-});
+    devtool: 'inline-source-map',
+}));
+
