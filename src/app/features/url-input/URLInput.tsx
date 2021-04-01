@@ -1,16 +1,18 @@
 import { Formik } from 'formik';
-import React from "react";
-import { connect } from "react-redux";
+import * as React from 'react';
+import { useDispatch } from "react-redux";
 import { Row, Col, Form, Button } from 'react-bootstrap';
-import { startDownloadAlbum } from "../redux/actions";
+import { startDownloadAlbum } from '../downloads/downloadsSlice';
 
-class URLInput extends React.Component {
-    handleSubmit = ({ input }) => {
-        const site = matchSite(new URL(input));
-        this.props.startDownloadAlbum(site);
+export function URLInput() {
+    const dispatch = useDispatch();
+
+    const handleSubmit = ({ input }: {input: string}) => {
+        const album = matchSite(new URL(input));
+        dispatch(startDownloadAlbum(album));
     };
 
-    handleValidate = ({ input }) => {
+    const handleValidate = ({ input }: {input: string}) => {
         let parsedUrl;
         try {
             parsedUrl = new URL(input);
@@ -26,10 +28,10 @@ class URLInput extends React.Component {
         return {};
     };
 
-    render = () => (
+    return (
         <Row>
             <Col>
-                <Formik initialValues={{ input: '' }} onSubmit={this.handleSubmit} validate={this.handleValidate}>
+                <Formik initialValues={{ input: '' }} onSubmit={({input}) => handleSubmit({input})} validate={({input}) => handleValidate({input})}>
                     {({ handleSubmit, handleChange, handleBlur, values, touched, errors }) => (
                         <Form noValidate onSubmit={handleSubmit}>
                             <Form.Group controlId="inputUrl">
@@ -53,11 +55,6 @@ class URLInput extends React.Component {
     );
 }
 
-export default connect(
-    null,
-    { startDownloadAlbum }
-)(URLInput);
-
 const availableSites = [
     {
         host: 'www.douban.com',
@@ -79,7 +76,7 @@ const availableSites = [
     },
 ];
 
-const matchSite = (uri) => {
+const matchSite = (uri: URL) => {
     for (const site of availableSites) {
         if (uri.host !== site.host) {
             continue;

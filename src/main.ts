@@ -1,22 +1,21 @@
 // Modules to control application life and create native browser window
-const process = require('process');
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const fs = require('fs').promises;
-const path = require('path');
-const axios = require('axios').default;
-const Store = require('electron-store');
-const contextMenu = require('electron-context-menu');
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { mkdir, writeFile } from 'fs/promises';
+import * as path from 'path';
+import axios from 'axios';
+import * as Store from 'electron-store';
+import * as contextMenu from 'electron-context-menu'
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let mainWindow;
+let mainWindow: BrowserWindow | null;
 const store = new Store();
 
 contextMenu({});
 
 function createWindow() {
     // Create the browser window.
-    const { width, height } = store.get('mainWindow.bounds') || {};
+    const { width, height } = store.get('mainWindow.bounds', {}) as {width: number, height: number};
     mainWindow = new BrowserWindow({
         width,
         height,
@@ -83,7 +82,7 @@ ipcMain.handle('createOutputDirectory', async (_, { dirName }) => {
     const outputDir = path.join(filePaths[0], dirName);
 
     try {
-        await fs.mkdir(outputDir);
+        await mkdir(outputDir);
     } catch (error) {
         if (error.code !== 'EEXIST') {
             console.error(error);
@@ -106,7 +105,7 @@ ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
         console.log(`Fetching ${imgUrl}`);
         const res = await axios.get(imgUrl, { responseType: 'arraybuffer' });
         console.log(`Finished fetching ${imgUrl}`);
-        await fs.writeFile(outputPath, res.data);
+        await writeFile(outputPath, res.data);
         console.log(`Finished writefile ${outputPath}`);
     } catch (error) {
         return { error: `${error}` };
