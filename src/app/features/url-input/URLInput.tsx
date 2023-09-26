@@ -1,11 +1,11 @@
 import { Formik } from 'formik';
 import * as React from 'react';
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "../../hooks";
 import { Row, Col, Form, Button } from 'react-bootstrap';
 import { startDownloadAlbum } from '../downloads/downloadsSlice';
 
 export function URLInput() {
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
 
     const handleSubmit = ({ input }: {input: string}) => {
         const album = matchSite(new URL(input));

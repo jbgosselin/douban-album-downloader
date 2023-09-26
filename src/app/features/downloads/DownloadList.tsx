@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useAppSelector, useAppDispatch } from "../../hooks";
 import { Row, Col, ProgressBar, Table, Button } from 'react-bootstrap';
 import {
     Image,
@@ -19,7 +19,7 @@ function ImageElem({ image }: {image: Image}) {
 }
 
 function DownloadingHeader() {
-    const { imagesIds, images } = useSelector(selectImages);
+    const { imagesIds, images } = useAppSelector(selectImages);
 
     const current = imagesIds.filter(name => images[name].status !== DownloadStatus.Pending).length;
     const total = imagesIds.length;
@@ -37,8 +37,8 @@ function DownloadingHeader() {
 }
 
 function FinishedHeader() {
-    const { imagesIds, images } = useSelector(selectImages);
-    const dispatch = useDispatch();
+    const { imagesIds, images } = useAppSelector(selectImages);
+    const dispatch = useAppDispatch();
 
     const hasErrors = imagesIds.filter(name => images[name].status === DownloadStatus.Error).length > 0;
 
@@ -58,8 +58,8 @@ function FinishedHeader() {
 }
 
 export function DownloadList() {
-    const { imagesIds, images } = useSelector(selectImages);
-    const done = useSelector(selectDone);
+    const { imagesIds, images } = useAppSelector(selectImages);
+    const done = useAppSelector(selectDone);
     
     return (
         <Row>
