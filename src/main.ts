@@ -1,7 +1,7 @@
 // Modules to control application life and create native browser window
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { mkdir, writeFile } from 'fs/promises';
-import * as path from 'path';
+import * as path from 'node:path';
 import axios from 'axios';
 import * as Store from 'electron-store';
 import * as contextMenu from 'electron-context-menu'
@@ -112,4 +112,12 @@ ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
     }
 
     return { error: null };
+});
+
+ipcMain.handle("pathBasename", async (_, { p, ext }) => {
+    return path.basename(p, ext);
+});
+
+ipcMain.handle("pathJoin", async (_, { paths }) => {
+    return path.join(...paths);
 });

@@ -76,8 +76,8 @@ export const startDownloadAlbum = createAsyncThunk(
         const imagesPromises: Promise<void>[] = [];
         
         const downloadImage = async ({ imgUrl }: { imgUrl: string }) => {
-            const imgName = window.electron.path.basename(imgUrl);
-            const outputPath = window.electron.path.join(outputDir, imgName);
+            const imgName = await window.electron.path.basename(imgUrl);
+            const outputPath = await window.electron.path.join(outputDir, imgName);
             dispatch(startDownloadingImage({ uri: imgUrl, name: imgName, outputPath }));
             
             const { error } = await window.electron.downloadSingleImage({ imgUrl, outputPath });
