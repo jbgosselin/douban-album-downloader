@@ -37,7 +37,7 @@ export function URLInput() {
                             <Form.Group controlId="inputUrl">
                                 <Form.Label>Album URL</Form.Label>
                                 <Form.Control type="text" name="input" onChange={handleChange} onBlur={handleBlur}
-                                    value={values.input} isInvalid={touched.input && errors.input} />
+                                    value={values.input} isInvalid={touched.input && errors.input != null} />
                                 <Form.Control.Feedback type="invalid">{errors.input}</Form.Control.Feedback>
                                 <Form.Text className="text-muted">
                                     Should be something like<br />
