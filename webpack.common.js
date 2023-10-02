@@ -2,7 +2,7 @@ const path = require('path');
 
 module.exports = [
     {
-        target: 'electron12-main',
+        target: 'electron26.2-main',
         entry: './src/main.ts',
         output: {
             filename: 'main.js',
@@ -19,7 +19,7 @@ module.exports = [
         },
     },
     {
-        target: 'electron12-preload',
+        target: 'electron26.2-preload',
         entry: './src/preload.ts',
         output: {
             filename: 'preload.js',
@@ -36,7 +36,7 @@ module.exports = [
         },
     },
     {
-        target: 'electron12-renderer',
+        target: 'electron26.2-renderer',
         entry: './src/app/main.tsx',
         output: {
             filename: 'app.js',
