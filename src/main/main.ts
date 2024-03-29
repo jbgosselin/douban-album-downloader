@@ -3,12 +3,11 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { mkdir, writeFile } from 'fs/promises';
 import * as path from 'node:path';
 import axios from 'axios';
-import * as Store from 'electron-store';
-import * as contextMenu from 'electron-context-menu'
+import Store from 'electron-store';
+import contextMenu from 'electron-context-menu'
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let mainWindow: BrowserWindow | null;
 const store = new Store();
 
 contextMenu({});
@@ -16,39 +15,41 @@ contextMenu({});
 function createWindow() {
     // Create the browser window.
     const { width, height } = store.get('mainWindow.bounds', {}) as {width: number, height: number};
-    mainWindow = new BrowserWindow({
+    const mainWindow = new BrowserWindow({
         width,
         height,
         autoHideMenuBar: true,
         webPreferences: {
-            preload: path.join(app.getAppPath(), 'build', 'preload.js')
+            preload: path.join(app.getAppPath(), 'out', 'preload', 'preload.js')
         },
     });
 
-    // and load the index.html of the app.
-    mainWindow.loadFile(path.join(app.getAppPath(), 'app.html'));
-
-    // Open the DevTools.
-    // mainWindow.webContents.openDevTools();
+    // Load the local URL for development or the local
+    // html file for production
+    if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
+        mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+        // Open the DevTools.
+        mainWindow.webContents.openDevTools();
+    } else {
+        mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
+    }
 
     mainWindow.on('close', () => {
         const { width, height } = mainWindow.getBounds();
-        store.set('mainWindow.bounds', { width, height });
-    });
-
-    // Emitted when the window is closed.
-    mainWindow.on('closed', () => {
-        // Dereference the window object, usually you would store windows
-        // in an array if your app supports multi windows, this is the time
-        // when you should delete the corresponding element.
-        mainWindow = null;
+        store.set('mainWindow.bounds', { width, height });    
     });
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.whenReady().then(() => {
+    createWindow()
+  
+    app.on('activate', function () {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
@@ -59,19 +60,16 @@ app.on('window-all-closed', () => {
     }
 });
 
-app.on('activate', () => {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (mainWindow === null) {
-        createWindow();
-    }
-});
-
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
-ipcMain.handle('createOutputDirectory', async (_, { dirName }) => {
-    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+ipcMain.handle('createOutputDirectory', async (event, { dirName }) => {
+    const webContents = event.sender;
+    const win = BrowserWindow.fromWebContents(webContents);
+    if (win === null) {
+        return { canceled: true };
+    }
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
         properties: ["openDirectory"],
     });
 
@@ -86,7 +84,7 @@ ipcMain.handle('createOutputDirectory', async (_, { dirName }) => {
     } catch (error) {
         if (error.code !== 'EEXIST') {
             console.error(error);
-            await dialog.showMessageBox(mainWindow, {
+            await dialog.showMessageBox(win, {
                 type: "error",
                 title: "Error",
                 message: "Cannot create output directory",
@@ -112,6 +110,17 @@ ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
     }
 
     return { error: null };
+});
+
+ipcMain.handle("downloadAlbumPage", async (_, { pageUrl }) => {
+    try {
+        console.log(`Fetching album page ${pageUrl}`);
+        const res = await axios.get(pageUrl, { responseType: 'text' });
+        console.log(`Finished fetching album page ${pageUrl}`);
+        return { content: res.data, error: null };
+    } catch (error) {
+        return { content: null, error: `${error}` };
+    }
 });
 
 ipcMain.handle("pathBasename", async (_, { p, ext }) => {
