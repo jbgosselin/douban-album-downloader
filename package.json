@@ -8,7 +8,7 @@
     "prebuild": "electron-vite build",
     "pack": "npm run prebuild && electron-builder --dir",
     "dist": "npm run prebuild && electron-builder",
-    "dist-win": "npm run prebuild && electron-builder --win"
+    "dist-all": "npm run prebuild && electron-builder --win --mac --linux"
   },
   "build": {
     "appId": "dev.jbgosselin.douban-album-downloader",
@@ -16,7 +16,22 @@
       "package.json",
       "README.md",
       "out/**/*"
-    ]
+    ],
+    "mac": {
+      "target": [{
+          "target": "default",
+          "arch": "universal"
+      }]
+    },
+    "win": {
+      "target": "portable"
+    },
+    "linux": {
+      "target": [{
+        "target": "AppImage",
+        "arch": ["x64", "arm64"]  
+      }]
+    }
   },
   "repository": {
     "type": "git",
