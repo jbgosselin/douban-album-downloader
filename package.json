@@ -16,8 +16,7 @@
     "files": [
       "package.json",
       "README.md",
-      "app.html",
-      "build/**/*.js"
+      "out/**/*"
     ]
   },
   "repository": {
