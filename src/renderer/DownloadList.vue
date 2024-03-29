@@ -83,10 +83,8 @@ onMounted(async () => {
     for (; ;) {
         console.log(`Fetching ${props.album.albumId} ${valueMax}`);
         const pageUrl = `${props.album.albumUrl}?${props.album.pageKey}=${valueMax}`;
-        const { content, error } = await window.electron.downloadAlbumPage({ pageUrl });
-        if (error !== null || content === undefined) {
-            break;
-        }
+        const res = await fetch(pageUrl);
+        const content = await res.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(content, 'text/html');
         const images = doc.querySelectorAll(props.album.imgSelector) as NodeListOf<HTMLImageElement>;

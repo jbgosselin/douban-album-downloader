@@ -5,7 +5,6 @@
   "main": "./out/main/main.js",
   "scripts": {
     "start": "electron-vite preview",
-    "dev": "electron-vite dev --watch",
     "prebuild": "electron-vite build",
     "pack": "npm run prebuild && electron-builder --dir",
     "dist": "npm run prebuild && electron-builder",

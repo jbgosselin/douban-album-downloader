@@ -26,13 +26,11 @@ function createWindow() {
 
     // Load the local URL for development or the local
     // html file for production
-    if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-        mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    if (!app.isPackaged) {
         // Open the DevTools.
         mainWindow.webContents.openDevTools();
-    } else {
-        mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
     }
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
 
     mainWindow.on('close', () => {
         const { width, height } = mainWindow.getBounds();
@@ -101,8 +99,7 @@ ipcMain.handle('createOutputDirectory', async (event, { dirName }) => {
 ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
     try {
         console.log(`Fetching ${imgUrl}`);
-        const req = new Request(imgUrl);
-        const res = await fetch(req);
+        const res = await fetch(imgUrl);
         if (res.body === null) {
             return { error: "Response body is null" };
         }
@@ -114,19 +111,6 @@ ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
     }
 
     return { error: null };
-});
-
-ipcMain.handle("downloadAlbumPage", async (_, { pageUrl }) => {
-    try {
-        console.log(`Fetching album page ${pageUrl}`);
-        const req = new Request(pageUrl);
-        const res = await fetch(req);
-        const content = await res.text();
-        console.log(`Finished fetching album page ${pageUrl}`);
-        return { content, error: null };
-    } catch (error) {
-        return { content: null, error: `${error}` };
-    }
 });
 
 ipcMain.handle("pathBasename", async (_, { p, ext }) => {
