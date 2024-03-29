@@ -41,7 +41,7 @@ async function retryErrors() {
     doneAllDownloads.value = false;
     const imagesPromises: Promise<void>[] = [];
 
-    for (const imageID in imageIDs.value) {
+    for (const imageID of imageIDs.value) {
         const img = images.value[imageID]
         if (img.status !== DownloadStatus.Error) {
             continue;
