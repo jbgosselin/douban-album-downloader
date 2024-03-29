@@ -1,8 +1,8 @@
 // Modules to control application life and create native browser window
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { mkdir, writeFile } from 'fs/promises';
+import web from 'stream/web';
 import * as path from 'node:path';
-import axios from 'axios';
 import Store from 'electron-store';
 import contextMenu from 'electron-context-menu'
 
@@ -101,9 +101,13 @@ ipcMain.handle('createOutputDirectory', async (event, { dirName }) => {
 ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
     try {
         console.log(`Fetching ${imgUrl}`);
-        const res = await axios.get(imgUrl, { responseType: 'arraybuffer' });
+        const req = new Request(imgUrl);
+        const res = await fetch(req);
+        if (res.body === null) {
+            return { error: "Response body is null" };
+        }
         console.log(`Finished fetching ${imgUrl}`);
-        await writeFile(outputPath, res.data);
+        await writeFile(outputPath, res.body as web.ReadableStream<Uint8Array>);
         console.log(`Finished writefile ${outputPath}`);
     } catch (error) {
         return { error: `${error}` };
@@ -115,9 +119,11 @@ ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
 ipcMain.handle("downloadAlbumPage", async (_, { pageUrl }) => {
     try {
         console.log(`Fetching album page ${pageUrl}`);
-        const res = await axios.get(pageUrl, { responseType: 'text' });
+        const req = new Request(pageUrl);
+        const res = await fetch(req);
+        const content = await res.text();
         console.log(`Finished fetching album page ${pageUrl}`);
-        return { content: res.data, error: null };
+        return { content, error: null };
     } catch (error) {
         return { content: null, error: `${error}` };
     }
