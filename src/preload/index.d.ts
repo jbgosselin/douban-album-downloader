@@ -6,4 +6,8 @@ declare interface GlobElectron {
         basename: (p: string, ext?: string) => Promise<string>
         join: (...paths: string[]) => Promise<string>
     }
+    theme: {
+        isDark: () => Promise<boolean>
+        onChange: (callback: (_event: unknown, isDark: boolean) => void) => void
+    }
 }

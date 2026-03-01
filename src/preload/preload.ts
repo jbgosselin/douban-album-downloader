@@ -8,5 +8,11 @@ contextBridge.exposeInMainWorld('electron', {
     path: {
         basename: (p, ext?) => ipcRenderer.invoke('pathBasename', { p, ext }),
         join: (...paths) => ipcRenderer.invoke('pathJoin', { paths }),
-    }
+    },
+    theme: {
+        isDark: () => ipcRenderer.invoke('isDarkMode'),
+        onChange: (callback: (_event: unknown, isDark: boolean) => void) => {
+            ipcRenderer.on('theme-changed', callback);
+        },
+    },
 } as GlobElectron);

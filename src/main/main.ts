@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, nativeTheme } from 'electron';
 import { mkdir, writeFile } from 'fs/promises';
 import { Readable } from 'node:stream';
 import * as path from 'node:path';
@@ -33,6 +33,10 @@ function createWindow() {
     }
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
 
+    nativeTheme.on('updated', () => {
+        mainWindow.webContents.send('theme-changed', nativeTheme.shouldUseDarkColors);
+    });
+
     mainWindow.on('close', () => {
         const { width, height } = mainWindow.getBounds();
         store.set('mainWindow.bounds', { width, height });    
@@ -61,6 +65,8 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+ipcMain.handle('isDarkMode', () => nativeTheme.shouldUseDarkColors);
 
 ipcMain.handle('createOutputDirectory', async (event, { dirName }) => {
     const webContents = event.sender;
