@@ -18,6 +18,36 @@ const retries = ref(3);
 const pageFetchTimeout = ref(30);
 const imageDownloadTimeout = ref(60);
 const formState = ref(FormState.Valid);
+const isDragOver = ref(false);
+
+function onDragOver(event: DragEvent) {
+    isDragOver.value = true;
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'copy';
+    }
+}
+
+function onDragLeave() {
+    isDragOver.value = false;
+}
+
+function onDrop(event: DragEvent) {
+    isDragOver.value = false;
+    if (!event.dataTransfer) return;
+
+    const uriList = event.dataTransfer.getData('text/uri-list');
+    let url = '';
+    if (uriList) {
+        url = uriList.split('\n').map(l => l.trim()).find(l => l && !l.startsWith('#')) ?? '';
+    }
+    if (!url) {
+        url = event.dataTransfer.getData('text/plain').trim();
+    }
+    if (url) {
+        albumUrl.value = url;
+        formState.value = FormState.Valid;
+    }
+}
 
 const invalidFeedback = computed(() => {
     switch (formState.value) {
@@ -57,7 +87,7 @@ function handleSubmitDownload() {
 
 <template>
 <form @submit.prevent="handleSubmitDownload">
-    <div class="mb-3">
+    <div class="mb-3 drop-zone" :class="{ 'drop-zone-active': isDragOver }" @dragover.prevent="onDragOver" @dragleave="onDragLeave" @drop.prevent="onDrop">
         <label for="inputAlbumUrl" class="form-label">Album URL</label>
         <input v-model="albumUrl" type="text" class="form-control" :class="urlInputCls" id="inputAlbumUrl" aria-describedby="inputAlbumUrlHelp inputAlbumUrlFeedback" required>
         <div id="inputAlbumUrlFeedback" class="invalid-feedback">{{ invalidFeedback }}</div>
@@ -66,6 +96,7 @@ function handleSubmitDownload() {
         <template v-for="site in availableSites" :key="site.example">
             <br /><code>{{ site.example }}</code>
         </template>
+        <br />or drag a URL here
         </div>
     </div>
     <button type="submit" class="btn btn-primary">Download</button>
@@ -95,3 +126,17 @@ function handleSubmitDownload() {
     </div>
 </form>
 </template>
+
+<style scoped>
+.drop-zone {
+    padding: 0.75rem;
+    border: 2px dashed transparent;
+    border-radius: 0.375rem;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.drop-zone-active {
+    border-color: var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+</style>

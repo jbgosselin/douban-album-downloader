@@ -23,7 +23,7 @@ async function startDownloadAlbum(album: Album, settings: DownloadSettings) {
 </script>
 
 <template>
-  <div class="container">
+  <div class="container" @dragover.prevent @drop.prevent>
     <div class="row">
       <div class="col">
         <h1>Douban Album Downloader</h1>
