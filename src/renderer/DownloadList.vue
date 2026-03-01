@@ -46,11 +46,11 @@ async function mapWithConcurrency<T>(
     await Promise.all(executing);
 }
 
-async function fetchWithRetry(url: string, retries: number): Promise<Response> {
+async function fetchWithRetry(url: string, retries: number, timeout: number): Promise<Response> {
     const maxAttempts = retries + 1;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
-            const res = await fetch(url);
+            const res = await fetch(url, { signal: AbortSignal.timeout(timeout * 1000) });
             if (res.ok) {
                 return res;
             }
@@ -128,7 +128,7 @@ async function downloadImage(imgUrl: string) {
         outputPath,
     };
 
-    const { error } = await window.electron.downloadSingleImage({ imgUrl, outputPath });
+    const { error } = await window.electron.downloadSingleImage({ imgUrl, outputPath, timeout: props.settings.imageDownloadTimeout });
     if (error) {
         if (error === 'cancelled') return;
         console.error(error);
@@ -149,7 +149,7 @@ onMounted(async () => {
 
             console.log(`Fetching ${props.album.albumId} ${valueMax}`);
             const pageUrl = `${props.album.albumUrl}?${props.album.pageKey}=${valueMax}`;
-            const res = await fetchWithRetry(pageUrl, props.settings.retries);
+            const res = await fetchWithRetry(pageUrl, props.settings.retries, props.settings.pageFetchTimeout);
             const content = await res.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(content, 'text/html');

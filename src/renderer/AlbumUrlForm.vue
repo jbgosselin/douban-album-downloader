@@ -15,6 +15,8 @@ enum FormState {
 const albumUrl = ref("");
 const concurrency = ref(5);
 const retries = ref(3);
+const pageFetchTimeout = ref(30);
+const imageDownloadTimeout = ref(60);
 const formState = ref(FormState.Valid);
 
 const invalidFeedback = computed(() => {
@@ -48,7 +50,7 @@ function handleSubmitDownload() {
     }
 
     formState.value = FormState.Valid;
-    emit('startDownload', site, { concurrency: concurrency.value, retries: retries.value })
+    emit('startDownload', site, { concurrency: concurrency.value, retries: retries.value, pageFetchTimeout: pageFetchTimeout.value, imageDownloadTimeout: imageDownloadTimeout.value })
 }
 
 </script>
@@ -80,6 +82,14 @@ function handleSubmitDownload() {
                 <label for="inputRetries" class="form-label">Page fetch retries</label>
                 <input v-model.number="retries" type="number" class="form-control" id="inputRetries" aria-describedby="inputRetriesHelp" min="0" max="10" required>
                 <div id="inputRetriesHelp" class="form-text">Number of retry attempts for failed page fetches (0 = no retries)</div>
+            </div>
+            <div class="mb-3">
+                <label for="inputPageFetchTimeout" class="form-label">Page fetch timeout (seconds)</label>
+                <input v-model.number="pageFetchTimeout" type="number" class="form-control" id="inputPageFetchTimeout" min="5" max="300" required>
+            </div>
+            <div class="mb-3">
+                <label for="inputImageDownloadTimeout" class="form-label">Image download timeout (seconds)</label>
+                <input v-model.number="imageDownloadTimeout" type="number" class="form-control" id="inputImageDownloadTimeout" min="5" max="600" required>
             </div>
         </div>
     </div>

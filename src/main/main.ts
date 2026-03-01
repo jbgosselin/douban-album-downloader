@@ -97,12 +97,12 @@ ipcMain.handle('createOutputDirectory', async (event, { dirName }) => {
     return { outputDir, canceled: false };
 });
 
-ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
+ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath, timeout }) => {
     const controller = new AbortController();
     activeDownloads.set(imgUrl, controller);
     try {
         console.log(`Fetching ${imgUrl}`);
-        const res = await fetch(imgUrl, { signal: controller.signal });
+        const res = await fetch(imgUrl, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(timeout * 1000)]) });
         if (res.body === null) {
             return { error: "Response body is null" };
         }

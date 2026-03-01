@@ -40,6 +40,8 @@ export interface Album {
 export interface DownloadSettings {
     concurrency: number;
     retries: number;
+    pageFetchTimeout: number;   // seconds
+    imageDownloadTimeout: number; // seconds
 }
 
 export function matchSite(uri: URL) {
