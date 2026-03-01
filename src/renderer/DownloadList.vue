@@ -25,7 +25,24 @@ const imageSizeRegex = /photo\/\w+\/public/;
 const props = defineProps<{
     outputDir: string,
     album: Album,
+    concurrency: number,
 }>()
+
+async function mapWithConcurrency<T>(
+    items: T[],
+    limit: number,
+    fn: (item: T) => Promise<void>,
+) {
+    const executing: Promise<void>[] = [];
+    for (const item of items) {
+        const p = fn(item).then(() => { executing.splice(executing.indexOf(p), 1); });
+        executing.push(p);
+        if (executing.length >= limit) {
+            await Promise.race(executing);
+        }
+    }
+    await Promise.all(executing);
+}
 
 const imageIDs = ref<string[]>([]);
 const images = ref<DownloadedImageMap>({})
@@ -39,19 +56,18 @@ function resetApp() {
 
 async function retryErrors() {
     doneAllDownloads.value = false;
-    const imagesPromises: Promise<void>[] = [];
+    const errorUrls: string[] = [];
 
     for (const imageID of imageIDs.value) {
         const img = images.value[imageID]
         if (img.status !== DownloadStatus.Error) {
             continue;
         }
-        const imgUrl = img.uri.replace(imageSizeRegex, 'photo/xl/public');
-        imagesPromises.push(downloadImage(imgUrl));
+        errorUrls.push(img.uri.replace(imageSizeRegex, 'photo/xl/public'));
     }
 
     console.log(`Waiting all downloads finished`);
-    await Promise.all(imagesPromises);
+    await mapWithConcurrency(errorUrls, props.concurrency, downloadImage);
     doneAllDownloads.value = true;
 }
 
@@ -78,7 +94,7 @@ async function downloadImage(imgUrl: string) {
 
 onMounted(async () => {
     let valueMax = 0;
-    const imagesPromises: Promise<void>[] = [];
+    const imgUrls: string[] = [];
 
     for (; ;) {
         console.log(`Fetching ${props.album.albumId} ${valueMax}`);
@@ -94,14 +110,13 @@ onMounted(async () => {
         }
 
         for (const img of images) {
-            const imgUrl = img.src.replace(imageSizeRegex, 'photo/xl/public');
-            imagesPromises.push(downloadImage(imgUrl));
+            imgUrls.push(img.src.replace(imageSizeRegex, 'photo/xl/public'));
             valueMax += 1;
         }
     }
 
     console.log(`Waiting all downloads finished`);
-    await Promise.all(imagesPromises);
+    await mapWithConcurrency(imgUrls, props.concurrency, downloadImage);
     doneAllDownloads.value = true;
 });
 

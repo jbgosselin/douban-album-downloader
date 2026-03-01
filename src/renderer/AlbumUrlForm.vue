@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { availableSites, matchSite, type Album } from './AlbumPattern'
 
 const emit = defineEmits<{
-    startDownload: [albumUrl: Album],
+    startDownload: [album: Album, concurrency: number],
 }>();
 
 enum FormState {
@@ -13,6 +13,7 @@ enum FormState {
 }
 
 const albumUrl = ref("");
+const concurrency = ref(5);
 const formState = ref(FormState.Valid);
 
 const invalidFeedback = computed(() => {
@@ -46,7 +47,7 @@ function handleSubmitDownload() {
     }
 
     formState.value = FormState.Valid;
-    emit('startDownload', site)
+    emit('startDownload', site, concurrency.value)
 }
 
 </script>
@@ -65,5 +66,16 @@ function handleSubmitDownload() {
         </div>
     </div>
     <button type="submit" class="btn btn-primary">Download</button>
+    <div class="mt-3">
+        <a data-bs-toggle="collapse" href="#settingsCollapse" role="button" aria-expanded="false" aria-controls="settingsCollapse" class="text-decoration-none">
+            Settings <span class="small">&#9660;</span>
+        </a>
+        <div class="collapse mt-2" id="settingsCollapse">
+            <div class="mb-3">
+                <label for="inputConcurrency" class="form-label">Max parallel downloads</label>
+                <input v-model.number="concurrency" type="number" class="form-control" id="inputConcurrency" min="1" max="20" required>
+            </div>
+        </div>
+    </div>
 </form>
 </template>
