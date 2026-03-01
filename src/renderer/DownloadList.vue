@@ -82,6 +82,8 @@ const doneAllDownloads = ref(false);
 const cancelled = ref(false);
 const pageFetchError = ref<string | null>(null);
 const isFetchingPages = ref(true);
+const pagesFetched = ref(0);
+const imagesFound = ref(0);
 
 const hasError = computed(() => (imageIDs.value.filter(name => images.value[name].status === DownloadStatus.Error).length > 0))
 
@@ -161,6 +163,8 @@ onMounted(async () => {
                 imgUrls.push(img.src.replace(imageSizeRegex, 'photo/xl/public'));
                 valueMax += 1;
             }
+            pagesFetched.value += 1;
+            imagesFound.value = imgUrls.length;
         }
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -216,7 +220,7 @@ onMounted(async () => {
     <template v-else>
         <div class="row">
             <div class="col col-xs">
-                <p v-if="isFetchingPages">Fetching album pages...</p>
+                <p v-if="isFetchingPages">Fetching pages... (page {{ pagesFetched }}, {{ imagesFound }} images found)</p>
                 <p v-else>Downloading...</p>
             </div>
             <div class="col" v-if="!isFetchingPages">
