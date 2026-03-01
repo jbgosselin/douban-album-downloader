@@ -85,7 +85,14 @@ const isFetchingPages = ref(true);
 const pagesFetched = ref(0);
 const imagesFound = ref(0);
 
-const hasError = computed(() => (imageIDs.value.filter(name => images.value[name].status === DownloadStatus.Error).length > 0))
+const successCount = computed(() => imageIDs.value.filter(name => images.value[name].status === DownloadStatus.Success).length);
+const errorCount = computed(() => imageIDs.value.filter(name => images.value[name].status === DownloadStatus.Error).length);
+const totalCount = computed(() => imageIDs.value.length);
+const hasError = computed(() => errorCount.value > 0);
+
+function openFolder() {
+    window.electron.openOutputDirectory({ dirPath: props.outputDir });
+}
 
 function resetApp() {
     window.location.reload()
@@ -190,65 +197,126 @@ onMounted(async () => {
 
 <template>
     <template v-if="pageFetchError">
-        <div class="row">
-            <div class="col">
-                <div class="alert alert-danger" role="alert">{{ pageFetchError }}</div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col col-xs">
-                <button class="btn btn-primary" @click="resetApp">Restart</button>
-            </div>
-        </div>
-    </template>
-
-    <template v-else-if="doneAllDownloads">
-        <div class="row">
-            <div class="col">
-                <p>Finished !</p>
-            </div>
-            <div class="col col-xs" v-if="hasError">
-                <button class="btn btn-warning" @click="retryErrors">Retry Errors</button>
-            </div>
-            <div class="col col-xs">
-                <button class="btn btn-primary" @click="resetApp">Restart</button>
-            </div>
-        </div>
-        <br />
+        <div class="alert alert-danger" role="alert">{{ pageFetchError }}</div>
+        <button class="btn btn-primary" @click="resetApp">Restart</button>
     </template>
 
     <template v-else>
-        <div class="row">
-            <div class="col col-xs">
-                <p v-if="isFetchingPages">Fetching pages... (page {{ pagesFetched }}, {{ imagesFound }} images found)</p>
-                <p v-else>Downloading...</p>
-            </div>
-            <div class="col" v-if="!isFetchingPages">
-                <ProgressBar :value-now="imageIDs.filter(name => images[name].status !== DownloadStatus.Pending).length"
-                    :value-max="imageIDs.length" />
-            </div>
-            <div class="col col-xs">
-                <button class="btn btn-danger" @click="cancelDownload">Cancel</button>
+        <!-- Stats line -->
+        <p v-if="isFetchingPages" class="text-secondary mb-2">
+            Fetching pages... (page {{ pagesFetched }}, {{ imagesFound }} images found)
+        </p>
+        <p v-else class="text-secondary mb-2">
+            {{ successCount }} / {{ totalCount }} images downloaded<template v-if="errorCount > 0"> &mdash; {{ errorCount }} failed</template>
+        </p>
+
+        <!-- Progress bar -->
+        <div v-if="!isFetchingPages" class="mb-3">
+            <ProgressBar :success-count="successCount" :error-count="errorCount" :total-count="totalCount" />
+        </div>
+
+        <!-- Action buttons when in progress -->
+        <div v-if="!doneAllDownloads" class="mb-3">
+            <button class="btn btn-outline-danger btn-sm" @click="cancelDownload">Cancel</button>
+        </div>
+
+        <!-- Completion actions -->
+        <div v-if="doneAllDownloads" class="d-flex gap-2 mb-3">
+            <button class="btn btn-success" @click="openFolder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-1" viewBox="0 0 16 16" style="vertical-align: -2px;">
+                    <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3m-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981z"/>
+                </svg>
+                Open Folder
+            </button>
+            <button v-if="hasError" class="btn btn-warning" @click="retryErrors">Retry Errors</button>
+            <button class="btn btn-outline-secondary" @click="resetApp">New Download</button>
+        </div>
+
+        <!-- Thumbnail grid -->
+        <div v-if="imageIDs.length > 0" class="thumbnail-grid">
+            <div v-for="id in imageIDs" :key="id" class="thumbnail-item">
+                <!-- File icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="tile-icon" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M6.502 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
+                    <path d="M14 14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zM4 1a1 1 0 0 0-1 1v10l2.224-2.224a.5.5 0 0 1 .61-.075L8 11l2.157-3.02a.5.5 0 0 1 .764-.07L13 10V4.5h-2A1.5 1.5 0 0 1 9.5 3V1z"/>
+                </svg>
+                <!-- Filename -->
+                <div class="tile-filename">{{ images[id].name }}</div>
+                <!-- Status overlay -->
+                <div class="thumbnail-overlay">
+                    <!-- Pending: spinner -->
+                    <template v-if="images[id].status === DownloadStatus.Pending">
+                        <div class="spinner-border spinner-border-sm text-light" role="status" style="width: 14px; height: 14px; border-width: 2px;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </template>
+                    <!-- Success: checkmark -->
+                    <template v-else-if="images[id].status === DownloadStatus.Success">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#4ade80" viewBox="0 0 16 16">
+                            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0"/>
+                        </svg>
+                    </template>
+                    <!-- Error: X -->
+                    <template v-else>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#f87171" viewBox="0 0 16 16">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                        </svg>
+                    </template>
+                </div>
             </div>
         </div>
     </template>
-
-    <div class="row" v-if="imageIDs.length > 0">
-        <div class="col">
-            <table class="table table-striped table-bordered table-sm">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="img in images" :key="img.name">
-                        <td>{{ img.name }}</td>
-                        <td>{{ img.status }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
 </template>
+
+<style scoped>
+.thumbnail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 4px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.thumbnail-item {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 4px;
+    background-color: var(--bs-tertiary-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.tile-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--bs-secondary-color);
+}
+
+.tile-filename {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 26px;
+    font-size: 9px;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.thumbnail-overlay {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>

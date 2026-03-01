@@ -23,30 +23,47 @@ async function startDownloadAlbum(album: Album, settings: DownloadSettings) {
 </script>
 
 <template>
-  <div class="container" @dragover.prevent @drop.prevent>
-    <div class="row">
-      <div class="col">
-        <h1>Douban Album Downloader</h1>
+  <div class="app-shell" @dragover.prevent @drop.prevent>
+    <div class="card shadow" style="width: 100%; max-width: 560px;">
+      <div class="card-header">
+        <h5 class="mb-0">Douban Album Downloader</h5>
+      </div>
+      <div class="card-body">
+        <Transition name="fade" mode="out-in">
+          <div v-if="!isDownloading" key="form">
+            <AlbumUrlForm
+              @start-download="startDownloadAlbum"
+            />
+          </div>
+          <div v-else key="download">
+            <DownloadList
+              :album="albumRef!"
+              :output-dir="outputDirRef"
+              :settings="settingsRef"
+            />
+          </div>
+        </Transition>
       </div>
     </div>
-
-    <template v-if="!isDownloading">
-      <div class="row">
-        <div class="col">
-          <AlbumUrlForm 
-            @start-download="startDownloadAlbum" 
-          />
-        </div>
-      </div>
-    </template>
-
-    <template v-else>
-      <DownloadList
-        :album="albumRef!"
-        :output-dir="outputDirRef"
-        :settings="settingsRef"
-      />
-    </template>
-
   </div>
 </template>
+
+<style scoped>
+.app-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

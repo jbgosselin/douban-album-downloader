@@ -1,11 +1,12 @@
 // Modules to control application life and create native browser window
-import { app, BrowserWindow, ipcMain, dialog, nativeTheme } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, nativeTheme, shell } from 'electron';
 import { mkdir, writeFile } from 'fs/promises';
 import { Readable } from 'node:stream';
 import * as path from 'node:path';
 import Store from 'electron-store';
 import contextMenu from 'electron-context-menu'
-import { autoUpdater } from 'electron-updater'
+import pkg from 'electron-updater';
+const { autoUpdater } = pkg;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -110,6 +111,10 @@ ipcMain.handle('createOutputDirectory', async (event, { dirName }) => {
     }
 
     return { outputDir, canceled: false };
+});
+
+ipcMain.handle("openOutputDirectory", async (_, { dirPath }: { dirPath: string }) => {
+    await shell.openPath(dirPath);
 });
 
 ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath, timeout }) => {
