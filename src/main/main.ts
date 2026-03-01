@@ -9,6 +9,7 @@ import contextMenu from 'electron-context-menu'
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 const store = new Store();
+const activeDownloads = new Map<string, AbortController>();
 
 contextMenu({});
 
@@ -97,9 +98,11 @@ ipcMain.handle('createOutputDirectory', async (event, { dirName }) => {
 });
 
 ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
+    const controller = new AbortController();
+    activeDownloads.set(imgUrl, controller);
     try {
         console.log(`Fetching ${imgUrl}`);
-        const res = await fetch(imgUrl);
+        const res = await fetch(imgUrl, { signal: controller.signal });
         if (res.body === null) {
             return { error: "Response body is null" };
         }
@@ -107,10 +110,22 @@ ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
         await writeFile(outputPath, Readable.fromWeb(res.body));
         console.log(`Finished writefile ${outputPath}`);
     } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+            return { error: "cancelled" };
+        }
         return { error: `${error}` };
+    } finally {
+        activeDownloads.delete(imgUrl);
     }
 
     return { error: null };
+});
+
+ipcMain.handle("cancelAllDownloads", async () => {
+    for (const controller of activeDownloads.values()) {
+        controller.abort();
+    }
+    activeDownloads.clear();
 });
 
 ipcMain.handle("pathBasename", async (_, { p, ext }) => {

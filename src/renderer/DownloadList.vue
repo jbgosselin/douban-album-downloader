@@ -32,9 +32,11 @@ async function mapWithConcurrency<T>(
     items: T[],
     limit: number,
     fn: (item: T) => Promise<void>,
+    isCancelled?: () => boolean,
 ) {
     const executing: Promise<void>[] = [];
     for (const item of items) {
+        if (isCancelled?.()) break;
         const p = fn(item).then(() => { executing.splice(executing.indexOf(p), 1); });
         executing.push(p);
         if (executing.length >= limit) {
@@ -77,6 +79,7 @@ async function fetchWithRetry(url: string, retries: number): Promise<Response> {
 const imageIDs = ref<string[]>([]);
 const images = ref<DownloadedImageMap>({})
 const doneAllDownloads = ref(false);
+const cancelled = ref(false);
 const pageFetchError = ref<string | null>(null);
 const isFetchingPages = ref(true);
 
@@ -86,8 +89,15 @@ function resetApp() {
     window.location.reload()
 }
 
+async function cancelDownload() {
+    cancelled.value = true;
+    await window.electron.cancelAllDownloads();
+    doneAllDownloads.value = true;
+}
+
 async function retryErrors() {
     doneAllDownloads.value = false;
+    cancelled.value = false;
     const errorUrls: string[] = [];
 
     for (const imageID of imageIDs.value) {
@@ -99,11 +109,13 @@ async function retryErrors() {
     }
 
     console.log(`Waiting all downloads finished`);
-    await mapWithConcurrency(errorUrls, props.settings.concurrency, downloadImage);
+    await mapWithConcurrency(errorUrls, props.settings.concurrency, downloadImage, () => cancelled.value);
     doneAllDownloads.value = true;
 }
 
 async function downloadImage(imgUrl: string) {
+    if (cancelled.value) return;
+
     const imgName = await window.electron.path.basename(imgUrl);
     const outputPath = await window.electron.path.join(props.outputDir, imgName);
     imageIDs.value.push(imgName);
@@ -116,6 +128,7 @@ async function downloadImage(imgUrl: string) {
 
     const { error } = await window.electron.downloadSingleImage({ imgUrl, outputPath });
     if (error) {
+        if (error === 'cancelled') return;
         console.error(error);
         images.value[imgName].status = DownloadStatus.Error;
         return;
@@ -130,6 +143,8 @@ onMounted(async () => {
 
     try {
         for (; ;) {
+            if (cancelled.value) break;
+
             console.log(`Fetching ${props.album.albumId} ${valueMax}`);
             const pageUrl = `${props.album.albumUrl}?${props.album.pageKey}=${valueMax}`;
             const res = await fetchWithRetry(pageUrl, props.settings.retries);
@@ -163,7 +178,7 @@ onMounted(async () => {
     isFetchingPages.value = false;
 
     console.log(`Waiting all downloads finished`);
-    await mapWithConcurrency(imgUrls, props.settings.concurrency, downloadImage);
+    await mapWithConcurrency(imgUrls, props.settings.concurrency, downloadImage, () => cancelled.value);
     doneAllDownloads.value = true;
 });
 
@@ -207,6 +222,9 @@ onMounted(async () => {
             <div class="col" v-if="!isFetchingPages">
                 <ProgressBar :value-now="imageIDs.filter(name => images[name].status !== DownloadStatus.Pending).length"
                     :value-max="imageIDs.length" />
+            </div>
+            <div class="col col-xs">
+                <button class="btn btn-danger" @click="cancelDownload">Cancel</button>
             </div>
         </div>
     </template>
