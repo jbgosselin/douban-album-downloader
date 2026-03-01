@@ -145,7 +145,7 @@ onMounted(async () => {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="img in images">
+                    <tr v-for="img in images" :key="img.name">
                         <td>{{ img.name }}</td>
                         <td>{{ img.status }}</td>
                     </tr>

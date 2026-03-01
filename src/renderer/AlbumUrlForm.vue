@@ -12,10 +12,10 @@ enum FormState {
     NotDoubanUrl,
 }
 
-let albumUrl = ref("");
-let formState = ref(FormState.Valid);
+const albumUrl = ref("");
+const formState = ref(FormState.Valid);
 
-let invalidFeedback = computed(() => {
+const invalidFeedback = computed(() => {
     switch (formState.value) {
         case FormState.InvalidUrl:
             return "Not a valid URL"
@@ -39,7 +39,7 @@ function handleSubmitDownload() {
         return;
     }
 
-    let site = matchSite(parsedUrl)
+    const site = matchSite(parsedUrl)
     if (site === null) {
         formState.value = FormState.NotDoubanUrl;
         return
@@ -59,7 +59,7 @@ function handleSubmitDownload() {
         <div id="inputAlbumUrlFeedback" class="invalid-feedback">{{ invalidFeedback }}</div>
         <div id="inputAlbumUrlHelp" class="form-text">
         Should be something like
-        <template v-for="site in availableSites">
+        <template v-for="site in availableSites" :key="site.example">
             <br /><code>{{ site.example }}</code>
         </template>
         </div>

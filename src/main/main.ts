@@ -1,7 +1,7 @@
 // Modules to control application life and create native browser window
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { mkdir, writeFile } from 'fs/promises';
-import web from 'stream/web';
+import { Readable } from 'node:stream';
 import * as path from 'node:path';
 import Store from 'electron-store';
 import contextMenu from 'electron-context-menu'
@@ -20,7 +20,7 @@ function createWindow() {
         height,
         autoHideMenuBar: true,
         webPreferences: {
-            preload: path.join(app.getAppPath(), 'out', 'preload', 'preload.js')
+            preload: path.join(app.getAppPath(), 'out', 'preload', 'preload.cjs')
         },
     });
 
@@ -79,8 +79,8 @@ ipcMain.handle('createOutputDirectory', async (event, { dirName }) => {
 
     try {
         await mkdir(outputDir);
-    } catch (error) {
-        if (error.code !== 'EEXIST') {
+    } catch (error: unknown) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
             console.error(error);
             await dialog.showMessageBox(win, {
                 type: "error",
@@ -104,7 +104,7 @@ ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath }) => {
             return { error: "Response body is null" };
         }
         console.log(`Finished fetching ${imgUrl}`);
-        await writeFile(outputPath, res.body as web.ReadableStream<Uint8Array>);
+        await writeFile(outputPath, Readable.fromWeb(res.body));
         console.log(`Finished writefile ${outputPath}`);
     } catch (error) {
         return { error: `${error}` };
