@@ -37,6 +37,11 @@ export interface Album {
     albumId: string;
 }
 
+export interface DownloadSettings {
+    concurrency: number;
+    retries: number;
+}
+
 export function matchSite(uri: URL) {
     for (const site of availableSites) {
         if (uri.host !== site.host) {

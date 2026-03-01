@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { availableSites, matchSite, type Album } from './AlbumPattern'
+import { availableSites, matchSite, type Album, type DownloadSettings } from './AlbumPattern'
 
 const emit = defineEmits<{
-    startDownload: [album: Album, concurrency: number],
+    startDownload: [album: Album, settings: DownloadSettings],
 }>();
 
 enum FormState {
@@ -14,6 +14,7 @@ enum FormState {
 
 const albumUrl = ref("");
 const concurrency = ref(5);
+const retries = ref(3);
 const formState = ref(FormState.Valid);
 
 const invalidFeedback = computed(() => {
@@ -47,7 +48,7 @@ function handleSubmitDownload() {
     }
 
     formState.value = FormState.Valid;
-    emit('startDownload', site, concurrency.value)
+    emit('startDownload', site, { concurrency: concurrency.value, retries: retries.value })
 }
 
 </script>
@@ -74,6 +75,11 @@ function handleSubmitDownload() {
             <div class="mb-3">
                 <label for="inputConcurrency" class="form-label">Max parallel downloads</label>
                 <input v-model.number="concurrency" type="number" class="form-control" id="inputConcurrency" min="1" max="20" required>
+            </div>
+            <div class="mb-3">
+                <label for="inputRetries" class="form-label">Page fetch retries</label>
+                <input v-model.number="retries" type="number" class="form-control" id="inputRetries" aria-describedby="inputRetriesHelp" min="0" max="10" required>
+                <div id="inputRetriesHelp" class="form-text">Number of retry attempts for failed page fetches (0 = no retries)</div>
             </div>
         </div>
     </div>

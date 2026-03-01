@@ -2,21 +2,21 @@
 import { ref } from 'vue';
 import AlbumUrlForm from './AlbumUrlForm.vue';
 import DownloadList from './DownloadList.vue';
-import type { Album } from './AlbumPattern';
+import type { Album, DownloadSettings } from './AlbumPattern';
 
 const isDownloading = ref(false)
 const outputDirRef = ref("")
 const albumRef = ref<Album>()
-const concurrencyRef = ref(5)
+const settingsRef = ref<DownloadSettings>({ concurrency: 5, retries: 3 })
 
-async function startDownloadAlbum(album: Album, concurrency: number) {
+async function startDownloadAlbum(album: Album, settings: DownloadSettings) {
   const { outputDir, canceled } = await window.electron.createOutputDirectory({ dirName: album.albumId });
   if (canceled === true || outputDir === undefined) {
     return;
   }
   albumRef.value = album;
   outputDirRef.value = outputDir
-  concurrencyRef.value = concurrency
+  settingsRef.value = settings
   isDownloading.value = true
 }
 
@@ -44,7 +44,7 @@ async function startDownloadAlbum(album: Album, concurrency: number) {
       <DownloadList
         :album="albumRef!"
         :output-dir="outputDirRef"
-        :concurrency="concurrencyRef"
+        :settings="settingsRef"
       />
     </template>
 
