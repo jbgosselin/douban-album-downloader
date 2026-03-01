@@ -9,7 +9,7 @@
     "prebuild": "electron-vite build",
     "pack": "npm run prebuild && electron-builder --dir",
     "dist": "npm run prebuild && electron-builder",
-    "dist-all": "npm run prebuild && electron-builder --win --mac --linux"
+    "dist-all": "npm run prebuild && electron-builder --win nsis --mac --linux"
   },
   "build": {
     "appId": "dev.jbgosselin.douban-album-downloader",
@@ -27,7 +27,10 @@
       ]
     },
     "win": {
-      "target": "portable"
+      "target": "nsis"
+    },
+    "publish": {
+      "provider": "github"
     },
     "linux": {
       "target": [
@@ -69,6 +72,7 @@
   },
   "dependencies": {
     "electron-context-menu": "^4.1.1",
-    "electron-store": "^11.0.2"
+    "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.3"
   }
 }

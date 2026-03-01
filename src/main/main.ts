@@ -5,6 +5,7 @@ import { Readable } from 'node:stream';
 import * as path from 'node:path';
 import Store from 'electron-store';
 import contextMenu from 'electron-context-menu'
+import { autoUpdater } from 'electron-updater'
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -48,7 +49,15 @@ function createWindow() {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
     createWindow()
-  
+
+    if (app.isPackaged) {
+        try {
+            autoUpdater.checkForUpdatesAndNotify();
+        } catch (error) {
+            console.error('Auto-update check failed:', error);
+        }
+    }
+
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
