@@ -51,11 +51,17 @@ async function fetchWithRetry(url: string, retries: number, timeout: number): Pr
     const maxAttempts = retries + 1;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
-            const res = await fetch(url, { signal: AbortSignal.timeout(timeout * 1000) });
+            const res = await fetch(url, {
+                signal: AbortSignal.timeout(timeout * 1000),
+                headers: {
+                    'Referer': url,
+                    'User-Agent': await window.electron.randomUserAgent(),
+                },
+            });
             if (res.ok) {
                 return res;
             }
-            if (res.status === 429 || res.status >= 500) {
+            if (res.status === 418 || res.status === 429 || res.status >= 500) {
                 if (attempt < maxAttempts - 1) {
                     const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
                     await new Promise(resolve => setTimeout(resolve, delay));
@@ -108,22 +114,25 @@ async function cancelDownload() {
 async function retryErrors() {
     doneAllDownloads.value = false;
     cancelled.value = false;
-    const errorUrls: string[] = [];
+    const errorEntries: { imgUrl: string, referer: string }[] = [];
 
     for (const imageID of imageIDs.value) {
         const img = images.value[imageID]
         if (img.status !== DownloadStatus.Error) {
             continue;
         }
-        errorUrls.push(img.uri.replace(imageSizeRegex, 'photo/xl/public'));
+        errorEntries.push({
+            imgUrl: img.uri.replace(imageSizeRegex, 'photo/xl/public'),
+            referer: props.album.albumUrl,
+        });
     }
 
     console.log(`Waiting all downloads finished`);
-    await mapWithConcurrency(errorUrls, props.settings.concurrency, downloadImage, () => cancelled.value);
+    await mapWithConcurrency(errorEntries, props.settings.concurrency, downloadImage, () => cancelled.value);
     doneAllDownloads.value = true;
 }
 
-async function downloadImage(imgUrl: string) {
+async function downloadImage({ imgUrl, referer }: { imgUrl: string, referer: string }) {
     if (cancelled.value) return;
 
     const imgName = await window.electron.path.basename(imgUrl);
@@ -136,7 +145,7 @@ async function downloadImage(imgUrl: string) {
         outputPath,
     };
 
-    const { error, fileUrl } = await window.electron.downloadSingleImage({ imgUrl, outputPath, timeout: props.settings.imageDownloadTimeout });
+    const { error, fileUrl } = await window.electron.downloadSingleImage({ imgUrl, outputPath, timeout: props.settings.imageDownloadTimeout, referer });
     if (error) {
         if (error === 'cancelled') return;
         console.error(error);
@@ -150,7 +159,7 @@ async function downloadImage(imgUrl: string) {
 
 onMounted(async () => {
     let valueMax = 0;
-    const imgUrls: string[] = [];
+    const imgEntries: { imgUrl: string, referer: string }[] = [];
 
     try {
         for (; ;) {
@@ -169,11 +178,14 @@ onMounted(async () => {
             }
 
             for (const img of pageImages) {
-                imgUrls.push(img.src.replace(imageSizeRegex, 'photo/xl/public'));
+                imgEntries.push({
+                    imgUrl: img.src.replace(imageSizeRegex, 'photo/xl/public'),
+                    referer: pageUrl,
+                });
                 valueMax += 1;
             }
             pagesFetched.value += 1;
-            imagesFound.value = imgUrls.length;
+            imagesFound.value = imgEntries.length;
         }
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -182,7 +194,7 @@ onMounted(async () => {
         return;
     }
 
-    if (imgUrls.length === 0) {
+    if (imgEntries.length === 0) {
         pageFetchError.value = 'No images found in this album.';
         isFetchingPages.value = false;
         return;
@@ -191,7 +203,7 @@ onMounted(async () => {
     isFetchingPages.value = false;
 
     console.log(`Waiting all downloads finished`);
-    await mapWithConcurrency(imgUrls, props.settings.concurrency, downloadImage, () => cancelled.value);
+    await mapWithConcurrency(imgEntries, props.settings.concurrency, downloadImage, () => cancelled.value);
     doneAllDownloads.value = true;
 });
 

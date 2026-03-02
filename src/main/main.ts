@@ -6,8 +6,11 @@ import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import Store from 'electron-store';
 import contextMenu from 'electron-context-menu'
+import UserAgent from 'user-agents';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
+
+const userAgent = new UserAgent({ deviceCategory: 'desktop' });
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -118,12 +121,18 @@ ipcMain.handle("openOutputDirectory", async (_, { dirPath }: { dirPath: string }
     await shell.openPath(dirPath);
 });
 
-ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath, timeout }) => {
+ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath, timeout, referer }) => {
     const controller = new AbortController();
     activeDownloads.set(imgUrl, controller);
     try {
         console.log(`Fetching ${imgUrl}`);
-        const res = await fetch(imgUrl, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(timeout * 1000)]) });
+        const res = await fetch(imgUrl, {
+            signal: AbortSignal.any([controller.signal, AbortSignal.timeout(timeout * 1000)]),
+            headers: {
+                'Referer': referer,
+                'User-Agent': userAgent.random().toString(),
+            },
+        });
         if (res.body === null) {
             return { error: "Response body is null" };
         }
@@ -147,6 +156,10 @@ ipcMain.handle("cancelAllDownloads", async () => {
         controller.abort();
     }
     activeDownloads.clear();
+});
+
+ipcMain.handle("randomUserAgent", () => {
+    return userAgent.random().toString();
 });
 
 ipcMain.handle("pathBasename", async (_, { p, ext }) => {
