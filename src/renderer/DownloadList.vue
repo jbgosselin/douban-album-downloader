@@ -212,81 +212,88 @@ onMounted(async () => {
 
 <template>
     <template v-if="pageFetchError">
-        <div class="alert alert-danger" role="alert">{{ pageFetchError }}</div>
-        <button class="btn btn-primary" @click="resetApp">Restart</button>
+        <div class="controls-bar">
+            <div class="alert alert-danger mb-0" role="alert">{{ pageFetchError }}</div>
+            <button class="btn btn-primary btn-sm" @click="resetApp">Restart</button>
+        </div>
     </template>
 
     <template v-else>
-        <!-- Stats line -->
-        <p v-if="!doneAllDownloads" class="text-secondary mb-2">
-            <template v-if="isFetchingPage">
-                Fetching page {{ pagesFetched + 1 }}...
-            </template>
-            <template v-else>
-                Downloading page {{ pagesFetched }} images... ({{ successCount + errorCount }} / {{ imagesFound }})
-            </template>
-        </p>
-        <p v-else class="text-secondary mb-2">
-            {{ successCount }} / {{ totalCount }} images downloaded<template v-if="errorCount > 0"> &mdash; {{ errorCount }} failed</template>
-        </p>
-
-        <!-- Progress bar -->
-        <div v-if="imagesFound > 0" class="mb-3">
-            <ProgressBar :success-count="successCount" :error-count="errorCount" :total-count="imagesFound" />
-        </div>
-
-        <!-- Action buttons when in progress -->
-        <div v-if="!doneAllDownloads" class="mb-3">
-            <button class="btn btn-outline-danger btn-sm" @click="cancelDownload">Cancel</button>
-        </div>
-
-        <!-- Completion actions -->
-        <div v-if="doneAllDownloads" class="d-flex gap-2 mb-3">
-            <button class="btn btn-success" @click="openFolder">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-1" viewBox="0 0 16 16" style="vertical-align: -2px;">
-                    <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3m-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981z"/>
-                </svg>
-                Open Folder
-            </button>
-            <button v-if="hasError" class="btn btn-warning" @click="retryErrors">Retry Errors</button>
-            <button class="btn btn-outline-secondary" @click="resetApp">New Download</button>
-        </div>
-
-        <!-- Thumbnail grid -->
-        <div v-if="imageIDs.length > 0" class="thumbnail-grid">
-            <div v-for="id in imageIDs" :key="id" class="thumbnail-item">
-                <!-- Thumbnail for successful downloads -->
-                <template v-if="images[id].status === DownloadStatus.Success && images[id].fileUrl">
-                    <img :src="images[id].fileUrl" class="thumbnail-img">
-                </template>
-                <!-- File icon for pending/error -->
-                <template v-else>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="tile-icon" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M6.502 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
-                        <path d="M14 14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zM4 1a1 1 0 0 0-1 1v10l2.224-2.224a.5.5 0 0 1 .61-.075L8 11l2.157-3.02a.5.5 0 0 1 .764-.07L13 10V4.5h-2A1.5 1.5 0 0 1 9.5 3V1z"/>
-                    </svg>
-                    <div class="tile-filename">{{ images[id].name }}</div>
-                </template>
-                <!-- Status overlay -->
-                <div class="thumbnail-overlay">
-                    <!-- Pending: spinner -->
-                    <template v-if="images[id].status === DownloadStatus.Pending">
-                        <div class="spinner-border spinner-border-sm text-light" role="status" style="width: 14px; height: 14px; border-width: 2px;">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
+        <!-- Fixed controls bar -->
+        <div class="controls-bar">
+            <div class="controls-row">
+                <!-- Stats -->
+                <span v-if="!doneAllDownloads" class="text-secondary">
+                    <template v-if="isFetchingPage">
+                        Fetching page {{ pagesFetched + 1 }}...
                     </template>
-                    <!-- Success: checkmark -->
-                    <template v-else-if="images[id].status === DownloadStatus.Success">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#4ade80" viewBox="0 0 16 16">
-                            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0"/>
-                        </svg>
-                    </template>
-                    <!-- Error: X -->
                     <template v-else>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#f87171" viewBox="0 0 16 16">
-                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
-                        </svg>
+                        Downloading page {{ pagesFetched }}... ({{ successCount + errorCount }} / {{ imagesFound }})
                     </template>
+                </span>
+                <span v-else class="text-secondary">
+                    {{ successCount }} / {{ totalCount }} downloaded<template v-if="errorCount > 0"> &mdash; {{ errorCount }} failed</template>
+                </span>
+
+                <!-- Action buttons -->
+                <div class="d-flex gap-2">
+                    <button v-if="!doneAllDownloads" class="btn btn-outline-danger btn-sm" @click="cancelDownload">Cancel</button>
+                    <template v-if="doneAllDownloads">
+                        <button class="btn btn-success btn-sm" @click="openFolder">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="me-1" viewBox="0 0 16 16" style="vertical-align: -2px;">
+                                <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3m-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981z"/>
+                            </svg>
+                            Open Folder
+                        </button>
+                        <button v-if="hasError" class="btn btn-warning btn-sm" @click="retryErrors">Retry Errors</button>
+                        <button class="btn btn-outline-secondary btn-sm" @click="resetApp">New Download</button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div v-if="imagesFound > 0">
+                <ProgressBar :success-count="successCount" :error-count="errorCount" :total-count="imagesFound" />
+            </div>
+        </div>
+
+        <!-- Scrollable thumbnail grid -->
+        <div v-if="imageIDs.length > 0" class="thumbnail-scroll">
+            <div class="thumbnail-grid">
+                <div v-for="id in imageIDs" :key="id" class="thumbnail-item">
+                    <!-- Thumbnail for successful downloads -->
+                    <template v-if="images[id].status === DownloadStatus.Success && images[id].fileUrl">
+                        <img :src="images[id].fileUrl" class="thumbnail-img">
+                    </template>
+                    <!-- File icon for pending/error -->
+                    <template v-else>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="tile-icon" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M6.502 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
+                            <path d="M14 14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zM4 1a1 1 0 0 0-1 1v10l2.224-2.224a.5.5 0 0 1 .61-.075L8 11l2.157-3.02a.5.5 0 0 1 .764-.07L13 10V4.5h-2A1.5 1.5 0 0 1 9.5 3V1z"/>
+                        </svg>
+                        <div class="tile-filename">{{ images[id].name }}</div>
+                    </template>
+                    <!-- Status overlay -->
+                    <div class="thumbnail-overlay">
+                        <!-- Pending: spinner -->
+                        <template v-if="images[id].status === DownloadStatus.Pending">
+                            <div class="spinner-border spinner-border-sm text-light" role="status" style="width: 14px; height: 14px; border-width: 2px;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </template>
+                        <!-- Success: checkmark -->
+                        <template v-else-if="images[id].status === DownloadStatus.Success">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#4ade80" viewBox="0 0 16 16">
+                                <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0"/>
+                            </svg>
+                        </template>
+                        <!-- Error: X -->
+                        <template v-else>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#f87171" viewBox="0 0 16 16">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                            </svg>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>
@@ -294,12 +301,34 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.controls-bar {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    background-color: var(--bs-body-bg);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.thumbnail-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
 .thumbnail-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 4px;
-    max-height: 400px;
-    overflow-y: auto;
 }
 
 .thumbnail-item {

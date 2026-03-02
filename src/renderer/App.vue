@@ -23,28 +23,31 @@ async function startDownloadAlbum(album: Album, settings: DownloadSettings) {
 </script>
 
 <template>
-  <div class="app-shell" @dragover.prevent @drop.prevent>
-    <div class="card shadow" style="width: 100%; max-width: 560px;">
-      <div class="card-header">
-        <h5 class="mb-0">Douban Album Downloader</h5>
+  <div class="app-shell" :class="{ 'app-shell-download': isDownloading }" @dragover.prevent @drop.prevent>
+    <Transition name="fade" mode="out-in">
+      <div v-if="!isDownloading" key="form" class="card shadow" style="width: 100%; max-width: 560px;">
+        <div class="card-header">
+          <h5 class="mb-0">Douban Album Downloader</h5>
+        </div>
+        <div class="card-body">
+          <AlbumUrlForm
+            @start-download="startDownloadAlbum"
+          />
+        </div>
       </div>
-      <div class="card-body">
-        <Transition name="fade" mode="out-in">
-          <div v-if="!isDownloading" key="form">
-            <AlbumUrlForm
-              @start-download="startDownloadAlbum"
-            />
-          </div>
-          <div v-else key="download">
-            <DownloadList
-              :album="albumRef!"
-              :output-dir="outputDirRef"
-              :settings="settingsRef"
-            />
-          </div>
-        </Transition>
+      <div v-else key="download" class="download-shell">
+        <div class="download-header">
+          <h5 class="mb-0">Douban Album Downloader</h5>
+        </div>
+        <div class="download-body">
+          <DownloadList
+            :album="albumRef!"
+            :output-dir="outputDirRef"
+            :settings="settingsRef"
+          />
+        </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -55,6 +58,32 @@ async function startDownloadAlbum(album: Album, settings: DownloadSettings) {
   justify-content: center;
   min-height: 100vh;
   padding: 1rem;
+}
+
+.app-shell-download {
+  align-items: stretch;
+  padding: 0;
+}
+
+.download-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+}
+
+.download-header {
+  padding: 0.75rem 1rem;
+  background-color: var(--bs-body-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  flex-shrink: 0;
+}
+
+.download-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .fade-enter-active,
