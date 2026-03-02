@@ -88,7 +88,7 @@ const images = ref<DownloadedImageMap>({})
 const doneAllDownloads = ref(false);
 const cancelled = ref(false);
 const pageFetchError = ref<string | null>(null);
-const isFetchingPages = ref(true);
+const isFetchingPage = ref(true);
 const pagesFetched = ref(0);
 const imagesFound = ref(0);
 
@@ -159,11 +159,11 @@ async function downloadImage({ imgUrl, referer }: { imgUrl: string, referer: str
 
 onMounted(async () => {
     let valueMax = 0;
-    const imgEntries: { imgUrl: string, referer: string }[] = [];
 
     try {
         for (; ;) {
             if (cancelled.value) break;
+            isFetchingPage.value = true;
 
             console.log(`Fetching ${props.album.albumId} ${valueMax}`);
             const pageUrl = `${props.album.albumUrl}?${props.album.pageKey}=${valueMax}`;
@@ -177,33 +177,34 @@ onMounted(async () => {
                 break;
             }
 
+            const pageEntries: { imgUrl: string, referer: string }[] = [];
             for (const img of pageImages) {
-                imgEntries.push({
+                pageEntries.push({
                     imgUrl: img.src.replace(imageSizeRegex, 'photo/xl/public'),
                     referer: pageUrl,
                 });
                 valueMax += 1;
             }
             pagesFetched.value += 1;
-            imagesFound.value = imgEntries.length;
+            imagesFound.value += pageEntries.length;
+            isFetchingPage.value = false;
+
+            console.log(`Downloading ${pageEntries.length} images from page ${pagesFetched.value}`);
+            await mapWithConcurrency(pageEntries, props.settings.concurrency, downloadImage, () => cancelled.value);
         }
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         pageFetchError.value = `Failed to fetch album pages: ${message}`;
-        isFetchingPages.value = false;
+        isFetchingPage.value = false;
         return;
     }
 
-    if (imgEntries.length === 0) {
+    if (totalCount.value === 0) {
         pageFetchError.value = 'No images found in this album.';
-        isFetchingPages.value = false;
+        isFetchingPage.value = false;
         return;
     }
 
-    isFetchingPages.value = false;
-
-    console.log(`Waiting all downloads finished`);
-    await mapWithConcurrency(imgEntries, props.settings.concurrency, downloadImage, () => cancelled.value);
     doneAllDownloads.value = true;
 });
 
@@ -217,16 +218,21 @@ onMounted(async () => {
 
     <template v-else>
         <!-- Stats line -->
-        <p v-if="isFetchingPages" class="text-secondary mb-2">
-            Fetching pages... (page {{ pagesFetched }}, {{ imagesFound }} images found)
+        <p v-if="!doneAllDownloads" class="text-secondary mb-2">
+            <template v-if="isFetchingPage">
+                Fetching page {{ pagesFetched + 1 }}...
+            </template>
+            <template v-else>
+                Downloading page {{ pagesFetched }} images... ({{ successCount + errorCount }} / {{ imagesFound }})
+            </template>
         </p>
         <p v-else class="text-secondary mb-2">
             {{ successCount }} / {{ totalCount }} images downloaded<template v-if="errorCount > 0"> &mdash; {{ errorCount }} failed</template>
         </p>
 
         <!-- Progress bar -->
-        <div v-if="!isFetchingPages" class="mb-3">
-            <ProgressBar :success-count="successCount" :error-count="errorCount" :total-count="totalCount" />
+        <div v-if="imagesFound > 0" class="mb-3">
+            <ProgressBar :success-count="successCount" :error-count="errorCount" :total-count="imagesFound" />
         </div>
 
         <!-- Action buttons when in progress -->
