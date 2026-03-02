@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import type { Album, DownloadSettings } from './AlbumPattern';
 import ProgressBar from './ProgressBar.vue';
 
@@ -93,10 +93,29 @@ const pagesFetched = ref(0);
 const imagesFound = ref(0);
 const pageFetchingDone = ref(false);
 
+const downloadStartTime = ref<number | null>(null);
+const now = ref<number>(Date.now());
+const nowInterval = setInterval(() => { now.value = Date.now(); }, 1000);
+onUnmounted(() => clearInterval(nowInterval));
+
 const successCount = computed(() => imageIDs.value.filter(name => images.value[name].status === DownloadStatus.Success).length);
 const errorCount = computed(() => imageIDs.value.filter(name => images.value[name].status === DownloadStatus.Error).length);
 const totalCount = computed(() => imageIDs.value.length);
 const hasError = computed(() => errorCount.value > 0);
+
+const etaText = computed(() => {
+    const completed = successCount.value + errorCount.value;
+    const remaining = imagesFound.value - completed;
+    if (completed < 2 || remaining <= 0 || !downloadStartTime.value) return null;
+    const elapsed = now.value - downloadStartTime.value;
+    const rate = completed / elapsed;
+    const etaMs = remaining / rate;
+    const etaSec = Math.round(etaMs / 1000);
+    if (etaSec < 60) return `~${etaSec}s remaining`;
+    const mins = Math.floor(etaSec / 60);
+    const secs = etaSec % 60;
+    return `~${mins}m ${secs}s remaining`;
+});
 
 function openFolder() {
     window.electron.openOutputDirectory({ dirPath: props.outputDir });
@@ -147,6 +166,7 @@ async function downloadImage({ imgUrl, referer }: { imgUrl: string, referer: str
     };
 
     const { error, fileUrl } = await window.electron.downloadSingleImage({ imgUrl, outputPath, timeout: props.settings.imageDownloadTimeout, referer });
+    if (!downloadStartTime.value) downloadStartTime.value = Date.now();
     if (error) {
         if (error === 'cancelled') return;
         console.error(error);
@@ -265,7 +285,7 @@ onMounted(async () => {
                     <!-- Line 2: Download status -->
                     <span v-if="imagesFound > 0" class="text-secondary">
                         <template v-if="!doneAllDownloads">
-                            Downloading images {{ successCount + errorCount }} of {{ imagesFound }}
+                            Downloading images {{ successCount + errorCount }} of {{ imagesFound }}<template v-if="etaText"> &mdash; {{ etaText }}</template>
                         </template>
                         <template v-else>
                             {{ successCount }} / {{ totalCount }} downloaded<template v-if="errorCount > 0"> &mdash; {{ errorCount }} failed</template>
