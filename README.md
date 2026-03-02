@@ -1,3 +1,5 @@
+<img src="src-tauri/icons/app-icon.svg" alt="Douban Album Downloader icon" width="96" align="right">
+
 # Douban Album Downloader
 
 Desktop app for batch-downloading photo albums from [Douban](https://www.douban.com). Paste a URL, pick a folder, and the app handles pagination, parallel downloads, and automatic retries.
