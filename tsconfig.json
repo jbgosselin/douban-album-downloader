@@ -1,11 +1,12 @@
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    },
-    {
-      "path": "./src/renderer/tsconfig.json"
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": ["src/renderer/**/*"],
+  "compilerOptions": {
+    "noEmit": true,
+    "noUncheckedIndexedAccess": false,
+    "baseUrl": "src/renderer",
+    "paths": {
+      "@/*": ["./*"]
     }
-  ]
+  }
 }

@@ -1,0 +1,26 @@
+[package]
+name = "douban-album-downloader"
+version = "3.0.0"
+description = "Batch download photo albums from Douban"
+authors = ["you"]
+edition = "2021"
+
+[lib]
+name = "douban_album_downloader_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-window-state = "2"
+reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
+tokio = { version = "1", features = ["fs", "macros"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+fake_user_agent = "0.2.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"

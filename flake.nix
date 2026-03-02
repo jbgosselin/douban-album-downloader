@@ -11,6 +11,17 @@
         packages = [
           pkgs.bashInteractive
           pkgs.nodejs_24
+          pkgs.rustc
+          pkgs.cargo
+          pkgs.cargo-tauri
+          pkgs.pkg-config
+          pkgs.openssl
+        ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
+          pkgs.webkitgtk_4_1
+          pkgs.libappindicator-gtk3
+          pkgs.librsvg
+        ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+          pkgs.darwin.apple_sdk.frameworks.WebKit
         ];
       };
     });
