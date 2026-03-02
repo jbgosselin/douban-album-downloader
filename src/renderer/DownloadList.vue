@@ -14,6 +14,7 @@ interface DownloadedImage {
     status: DownloadStatus;
     uri: string;
     outputPath: string;
+    fileUrl?: string;
 }
 
 interface DownloadedImageMap {
@@ -135,7 +136,7 @@ async function downloadImage(imgUrl: string) {
         outputPath,
     };
 
-    const { error } = await window.electron.downloadSingleImage({ imgUrl, outputPath, timeout: props.settings.imageDownloadTimeout });
+    const { error, fileUrl } = await window.electron.downloadSingleImage({ imgUrl, outputPath, timeout: props.settings.imageDownloadTimeout });
     if (error) {
         if (error === 'cancelled') return;
         console.error(error);
@@ -143,6 +144,7 @@ async function downloadImage(imgUrl: string) {
         return;
     }
 
+    images.value[imgName].fileUrl = fileUrl;
     images.value[imgName].status = DownloadStatus.Success;
 }
 
@@ -235,13 +237,18 @@ onMounted(async () => {
         <!-- Thumbnail grid -->
         <div v-if="imageIDs.length > 0" class="thumbnail-grid">
             <div v-for="id in imageIDs" :key="id" class="thumbnail-item">
-                <!-- File icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" class="tile-icon" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M6.502 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
-                    <path d="M14 14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zM4 1a1 1 0 0 0-1 1v10l2.224-2.224a.5.5 0 0 1 .61-.075L8 11l2.157-3.02a.5.5 0 0 1 .764-.07L13 10V4.5h-2A1.5 1.5 0 0 1 9.5 3V1z"/>
-                </svg>
-                <!-- Filename -->
-                <div class="tile-filename">{{ images[id].name }}</div>
+                <!-- Thumbnail for successful downloads -->
+                <template v-if="images[id].status === DownloadStatus.Success && images[id].fileUrl">
+                    <img :src="images[id].fileUrl" class="thumbnail-img">
+                </template>
+                <!-- File icon for pending/error -->
+                <template v-else>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="tile-icon" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M6.502 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
+                        <path d="M14 14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zM4 1a1 1 0 0 0-1 1v10l2.224-2.224a.5.5 0 0 1 .61-.075L8 11l2.157-3.02a.5.5 0 0 1 .764-.07L13 10V4.5h-2A1.5 1.5 0 0 1 9.5 3V1z"/>
+                    </svg>
+                    <div class="tile-filename">{{ images[id].name }}</div>
+                </template>
                 <!-- Status overlay -->
                 <div class="thumbnail-overlay">
                     <!-- Pending: spinner -->
@@ -287,6 +294,12 @@ onMounted(async () => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+
+.thumbnail-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .tile-icon {

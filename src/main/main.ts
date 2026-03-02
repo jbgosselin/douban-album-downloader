@@ -3,6 +3,7 @@ import { app, BrowserWindow, ipcMain, dialog, nativeTheme, shell } from 'electro
 import { mkdir, writeFile } from 'fs/promises';
 import { Readable } from 'node:stream';
 import * as path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import Store from 'electron-store';
 import contextMenu from 'electron-context-menu'
 import pkg from 'electron-updater';
@@ -138,7 +139,7 @@ ipcMain.handle("downloadSingleImage", async (_, { imgUrl, outputPath, timeout })
         activeDownloads.delete(imgUrl);
     }
 
-    return { error: null };
+    return { error: null, fileUrl: pathToFileURL(outputPath).href };
 });
 
 ipcMain.handle("cancelAllDownloads", async () => {
