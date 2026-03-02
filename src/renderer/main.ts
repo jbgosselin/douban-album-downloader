@@ -1,9 +1,9 @@
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap"
 
-/// <reference types="../preload" />
 import { createApp } from 'vue'
 import App from './App.vue'
+import { bridge } from './tauri-bridge'
 
 const app = createApp(App)
 
@@ -13,11 +13,5 @@ function applyTheme(isDark: boolean) {
     document.documentElement.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
 }
 
-window.electron.theme.isDark().then(applyTheme);
-window.electron.theme.onChange((_event, isDark) => applyTheme(isDark));
-
-declare global {
-    interface Window {
-        electron: GlobElectron
-    }
-}
+bridge.theme.isDark().then(applyTheme);
+bridge.theme.onChange(applyTheme);

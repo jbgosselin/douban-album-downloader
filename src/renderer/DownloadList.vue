@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import type { Album, DownloadSettings } from './AlbumPattern';
 import ProgressBar from './ProgressBar.vue';
+import { bridge } from './tauri-bridge';
 
 enum DownloadStatus {
     Pending = "PENDING",
@@ -15,10 +16,6 @@ interface DownloadedImage {
     uri: string;
     outputPath: string;
     fileUrl?: string;
-}
-
-interface DownloadedImageMap {
-    [index: string]: DownloadedImage;
 }
 
 const imageSizeRegex = /photo\/\w+\/public/;
@@ -47,35 +44,16 @@ async function mapWithConcurrency<T>(
     await Promise.all(executing);
 }
 
-async function fetchWithRetry(url: string, retries: number, timeout: number): Promise<Response> {
+async function fetchWithRetry(url: string, retries: number, timeout: number): Promise<string> {
     const maxAttempts = retries + 1;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
-            const res = await fetch(url, {
-                signal: AbortSignal.timeout(timeout * 1000),
-                headers: {
-                    'Referer': url,
-                    'User-Agent': await window.electron.randomUserAgent(),
-                },
-            });
-            if (res.ok) {
-                return res;
-            }
-            if (res.status === 418 || res.status === 429 || res.status >= 500) {
-                if (attempt < maxAttempts - 1) {
-                    const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    continue;
-                }
-            }
-            throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}`);
+            return await bridge.fetchPage({ url, referer: url, timeout });
         } catch (err) {
-            if (err instanceof TypeError || (err instanceof Error && !err.message.startsWith('HTTP '))) {
-                if (attempt < maxAttempts - 1) {
-                    const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    continue;
-                }
+            if (attempt < maxAttempts - 1) {
+                const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
             }
             throw err;
         }
@@ -84,7 +62,7 @@ async function fetchWithRetry(url: string, retries: number, timeout: number): Pr
 }
 
 const imageIDs = ref<string[]>([]);
-const images = ref<DownloadedImageMap>({})
+const images = ref<Record<string, DownloadedImage>>({})
 const doneAllDownloads = ref(false);
 const cancelled = ref(false);
 const pageFetchError = ref<string | null>(null);
@@ -118,7 +96,7 @@ const etaText = computed(() => {
 });
 
 function openFolder() {
-    window.electron.openOutputDirectory({ dirPath: props.outputDir });
+    bridge.openOutputDirectory({ dirPath: props.outputDir });
 }
 
 function resetApp() {
@@ -127,7 +105,7 @@ function resetApp() {
 
 async function cancelDownload() {
     cancelled.value = true;
-    await window.electron.cancelAllDownloads();
+    await bridge.cancelAllDownloads();
     doneAllDownloads.value = true;
 }
 
@@ -155,8 +133,8 @@ async function retryErrors() {
 async function downloadImage({ imgUrl, referer }: { imgUrl: string, referer: string }) {
     if (cancelled.value) return;
 
-    const imgName = await window.electron.path.basename(imgUrl);
-    const outputPath = await window.electron.path.join(props.outputDir, imgName);
+    const imgName = bridge.path.basename(imgUrl);
+    const outputPath = bridge.path.join(props.outputDir, imgName);
     imageIDs.value.push(imgName);
     images.value[imgName] = {
         name: imgName,
@@ -165,7 +143,7 @@ async function downloadImage({ imgUrl, referer }: { imgUrl: string, referer: str
         outputPath,
     };
 
-    const { error, fileUrl } = await window.electron.downloadSingleImage({ imgUrl, outputPath, timeout: props.settings.imageDownloadTimeout, referer });
+    const { error, fileUrl } = await bridge.downloadSingleImage({ imgUrl, outputPath, timeout: props.settings.imageDownloadTimeout, referer });
     if (!downloadStartTime.value) downloadStartTime.value = Date.now();
     if (error) {
         if (error === 'cancelled') return;
@@ -189,8 +167,7 @@ onMounted(async () => {
 
                 console.log(`Fetching ${props.album.albumId} ${valueMax}`);
                 const pageUrl = `${props.album.albumUrl}?${props.album.pageKey}=${valueMax}`;
-                const res = await fetchWithRetry(pageUrl, props.settings.retries, props.settings.pageFetchTimeout);
-                const content = await res.text();
+                const content = await fetchWithRetry(pageUrl, props.settings.retries, props.settings.pageFetchTimeout);
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(content, 'text/html');
                 const pageImages = doc.querySelectorAll(props.album.imgSelector) as NodeListOf<HTMLImageElement>;

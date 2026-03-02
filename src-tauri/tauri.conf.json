@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicedoc/tauri/refs/heads/v2/crates/tauri-cli/schema.json",
+  "productName": "Douban Album Downloader",
+  "version": "3.0.0",
+  "identifier": "com.douban-album-downloader.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "title": "Douban Album Downloader",
+        "width": 900,
+        "height": 670,
+        "minWidth": 600,
+        "minHeight": 400,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://*.doubanio.com; style-src 'self' 'unsafe-inline'",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    },
+    "createUpdaterArtifacts": false
+  }
+}

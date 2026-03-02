@@ -2,7 +2,7 @@
 
 Desktop app for batch-downloading photo albums from [Douban](https://www.douban.com). Paste a URL, pick a folder, and the app handles pagination, parallel downloads, and automatic retries.
 
-Built with Electron, Vue 3, and TypeScript.
+Built with Tauri v2, Vue 3, TypeScript, and Rust.
 
 ## Download
 
@@ -30,7 +30,7 @@ Expand the **Settings** section in the URL form to configure:
 
 ## Building from Source
 
-Requires **Node 24**. A Nix flake is provided for reproducible setup (`nix develop` or use [direnv](https://direnv.net/)).
+Requires **Node 24** and a **Rust toolchain**. A Nix flake is provided for reproducible setup (`nix develop` or use [direnv](https://direnv.net/)).
 
 ```sh
 # Install dependencies
@@ -42,7 +42,7 @@ npm start
 # Build and package for your current platform
 npm run dist
 
-# Build for all platforms (macOS, Windows, Linux)
+# Build macOS universal binary
 npm run dist-all
 ```
 
