@@ -1,6 +1,6 @@
 [package]
 name = "douban-album-downloader"
-version = "4.0.0"
+version = "4.0.1"
 description = "Batch download photo albums from Douban"
 authors = ["you"]
 edition = "2021"
