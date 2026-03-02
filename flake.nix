@@ -10,7 +10,7 @@
       devShells.default = pkgs.mkShell {
         packages = [
           pkgs.bashInteractive
-          pkgs.nodejs_20
+          pkgs.nodejs_24
         ];
       };
     });

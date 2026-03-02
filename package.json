@@ -53,7 +53,7 @@
   "homepage": "https://github.com/jbgosselin/douban-album-downloader",
   "devDependencies": {
     "@popperjs/core": "^2.11.8",
-    "@tsconfig/node20": "^20.1.9",
+    "@tsconfig/node24": "^24.0.0",
     "@types/bootstrap": "^5.2.10",
     "@types/node": "^25.3.3",
     "@vitejs/plugin-vue": "^6.0.4",
