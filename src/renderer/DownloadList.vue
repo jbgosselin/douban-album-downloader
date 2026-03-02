@@ -91,6 +91,7 @@ const pageFetchError = ref<string | null>(null);
 const isFetchingPage = ref(true);
 const pagesFetched = ref(0);
 const imagesFound = ref(0);
+const pageFetchingDone = ref(false);
 
 const successCount = computed(() => imageIDs.value.filter(name => images.value[name].status === DownloadStatus.Success).length);
 const errorCount = computed(() => imageIDs.value.filter(name => images.value[name].status === DownloadStatus.Error).length);
@@ -158,50 +159,74 @@ async function downloadImage({ imgUrl, referer }: { imgUrl: string, referer: str
 }
 
 onMounted(async () => {
-    let valueMax = 0;
+    const pendingQueue: { imgUrl: string, referer: string }[] = [];
 
-    try {
-        for (; ;) {
-            if (cancelled.value) break;
-            isFetchingPage.value = true;
+    async function fetchAllPages() {
+        let valueMax = 0;
+        try {
+            for (; ;) {
+                if (cancelled.value) break;
 
-            console.log(`Fetching ${props.album.albumId} ${valueMax}`);
-            const pageUrl = `${props.album.albumUrl}?${props.album.pageKey}=${valueMax}`;
-            const res = await fetchWithRetry(pageUrl, props.settings.retries, props.settings.pageFetchTimeout);
-            const content = await res.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(content, 'text/html');
-            const pageImages = doc.querySelectorAll(props.album.imgSelector) as NodeListOf<HTMLImageElement>;
+                console.log(`Fetching ${props.album.albumId} ${valueMax}`);
+                const pageUrl = `${props.album.albumUrl}?${props.album.pageKey}=${valueMax}`;
+                const res = await fetchWithRetry(pageUrl, props.settings.retries, props.settings.pageFetchTimeout);
+                const content = await res.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(content, 'text/html');
+                const pageImages = doc.querySelectorAll(props.album.imgSelector) as NodeListOf<HTMLImageElement>;
 
-            if (pageImages.length === 0) {
-                break;
+                if (pageImages.length === 0) {
+                    break;
+                }
+
+                for (const img of pageImages) {
+                    pendingQueue.push({
+                        imgUrl: img.src.replace(imageSizeRegex, 'photo/xl/public'),
+                        referer: pageUrl,
+                    });
+                    valueMax += 1;
+                }
+                pagesFetched.value += 1;
+                imagesFound.value += pageImages.length;
             }
-
-            const pageEntries: { imgUrl: string, referer: string }[] = [];
-            for (const img of pageImages) {
-                pageEntries.push({
-                    imgUrl: img.src.replace(imageSizeRegex, 'photo/xl/public'),
-                    referer: pageUrl,
-                });
-                valueMax += 1;
-            }
-            pagesFetched.value += 1;
-            imagesFound.value += pageEntries.length;
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            pageFetchError.value = `Failed to fetch album pages: ${message}`;
+        } finally {
+            pageFetchingDone.value = true;
             isFetchingPage.value = false;
-
-            console.log(`Downloading ${pageEntries.length} images from page ${pagesFetched.value}`);
-            await mapWithConcurrency(pageEntries, props.settings.concurrency, downloadImage, () => cancelled.value);
         }
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        pageFetchError.value = `Failed to fetch album pages: ${message}`;
-        isFetchingPage.value = false;
-        return;
     }
 
-    if (totalCount.value === 0) {
+    async function processDownloads() {
+        const executing: Promise<void>[] = [];
+        const limit = props.settings.concurrency;
+
+        while (true) {
+            if (cancelled.value) break;
+
+            if (pendingQueue.length > 0) {
+                const entry = pendingQueue.shift()!;
+                const p = downloadImage(entry).then(() => {
+                    executing.splice(executing.indexOf(p), 1);
+                });
+                executing.push(p);
+                if (executing.length >= limit) {
+                    await Promise.race(executing);
+                }
+            } else if (pageFetchingDone.value) {
+                break;
+            } else {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
+        await Promise.all(executing);
+    }
+
+    await Promise.all([fetchAllPages(), processDownloads()]);
+
+    if (totalCount.value === 0 && !pageFetchError.value) {
         pageFetchError.value = 'No images found in this album.';
-        isFetchingPage.value = false;
         return;
     }
 
@@ -211,7 +236,8 @@ onMounted(async () => {
 </script>
 
 <template>
-    <template v-if="pageFetchError">
+    <!-- Fatal error with no images downloaded -->
+    <template v-if="pageFetchError && totalCount === 0">
         <div class="controls-bar">
             <div class="alert alert-danger mb-0" role="alert">{{ pageFetchError }}</div>
             <button class="btn btn-primary btn-sm" @click="resetApp">Restart</button>
@@ -221,19 +247,31 @@ onMounted(async () => {
     <template v-else>
         <!-- Fixed controls bar -->
         <div class="controls-bar">
+            <!-- Warning banner for partial fetch errors -->
+            <div v-if="pageFetchError" class="alert alert-warning mb-0" role="alert">{{ pageFetchError }}</div>
+
             <div class="controls-row">
-                <!-- Stats -->
-                <span v-if="!doneAllDownloads" class="text-secondary">
-                    <template v-if="isFetchingPage">
-                        Fetching page {{ pagesFetched + 1 }}...
-                    </template>
-                    <template v-else>
-                        Downloading page {{ pagesFetched }}... ({{ successCount + errorCount }} / {{ imagesFound }})
-                    </template>
-                </span>
-                <span v-else class="text-secondary">
-                    {{ successCount }} / {{ totalCount }} downloaded<template v-if="errorCount > 0"> &mdash; {{ errorCount }} failed</template>
-                </span>
+                <!-- Stats: two lines -->
+                <div class="status-lines">
+                    <!-- Line 1: Fetch status -->
+                    <span class="text-secondary">
+                        <template v-if="isFetchingPage">
+                            Fetching page {{ pagesFetched + 1 }}...
+                        </template>
+                        <template v-else>
+                            All {{ pagesFetched }} pages fetched ({{ imagesFound }} images found)
+                        </template>
+                    </span>
+                    <!-- Line 2: Download status -->
+                    <span v-if="imagesFound > 0" class="text-secondary">
+                        <template v-if="!doneAllDownloads">
+                            Downloading images {{ successCount + errorCount }} of {{ imagesFound }}
+                        </template>
+                        <template v-else>
+                            {{ successCount }} / {{ totalCount }} downloaded<template v-if="errorCount > 0"> &mdash; {{ errorCount }} failed</template>
+                        </template>
+                    </span>
+                </div>
 
                 <!-- Action buttons -->
                 <div class="d-flex gap-2">
@@ -317,6 +355,12 @@ onMounted(async () => {
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
+}
+
+.status-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
 }
 
 .thumbnail-scroll {
