@@ -119,6 +119,26 @@ struct DownloadResult {
     file_path: Option<String>,
 }
 
+async fn fetch_and_write(
+    client: &Client,
+    img_url: &str,
+    output_path: &str,
+    timeout: u64,
+    referer: &str,
+) -> AppResult<()> {
+    let data = client
+        .get(img_url)
+        .header("Referer", referer)
+        .header("User-Agent", get_rua())
+        .timeout(std::time::Duration::from_secs(timeout))
+        .send()
+        .await?
+        .bytes()
+        .await?;
+    tokio::fs::write(output_path, &data).await?;
+    Ok(())
+}
+
 #[tauri::command]
 async fn download_single_image(
     state: tauri::State<'_, Arc<DownloadState>>,
@@ -133,57 +153,21 @@ async fn download_single_image(
         downloads.insert(img_url.clone(), token.clone());
     }
 
-    let ua: &str = get_rua();
-
     let result = tokio::select! {
         _ = token.cancelled() => {
-            Ok(DownloadResult { error: Some("cancelled".into()), file_path: None })
+            DownloadResult { error: Some("cancelled".into()), file_path: None }
         }
-        res = async {
-            let response = state.client
-                .get(&img_url)
-                .header("Referer", &referer)
-                .header("User-Agent", ua)
-                .timeout(std::time::Duration::from_secs(timeout))
-                .send()
-                .await;
-
-            match response {
-                Ok(resp) => {
-                    let bytes = resp.bytes().await;
-                    match bytes {
-                        Ok(data) => {
-                            match tokio::fs::write(&output_path, &data).await {
-                                Ok(_) => Ok(DownloadResult {
-                                    error: None,
-                                    file_path: Some(output_path.clone()),
-                                }),
-                                Err(e) => Ok(DownloadResult {
-                                    error: Some(format!("{}", e)),
-                                    file_path: None,
-                                }),
-                            }
-                        }
-                        Err(e) => Ok(DownloadResult {
-                            error: Some(format!("{}", e)),
-                            file_path: None,
-                        }),
-                    }
-                }
-                Err(e) => Ok(DownloadResult {
-                    error: Some(format!("{}", e)),
-                    file_path: None,
-                }),
+        res = fetch_and_write(&state.client, &img_url, &output_path, timeout, &referer) => {
+            match res {
+                Ok(()) => DownloadResult { error: None, file_path: Some(output_path.clone()) },
+                Err(e) => DownloadResult { error: Some(e.to_string()), file_path: None },
             }
-        } => res,
+        }
     };
 
-    {
-        let mut downloads = state.active_downloads.lock().await;
-        downloads.remove(&img_url);
-    }
+    state.active_downloads.lock().await.remove(&img_url);
 
-    result
+    Ok(result)
 }
 
 #[tauri::command]
