@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/tauri/refs/heads/v2/crates/tauri-cli/schema.json",
   "productName": "Douban Album Downloader",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "identifier": "com.douban-album-downloader.app",
   "build": {
     "frontendDist": "../dist",
