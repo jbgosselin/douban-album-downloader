@@ -22,8 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://*.doubanio.com; style-src 'self' 'unsafe-inline'",
-      "assetProtocol": {
+"assetProtocol": {
         "enable": true,
         "scope": ["**"]
       }
