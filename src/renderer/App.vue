@@ -1,14 +1,48 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import AlbumUrlForm from './AlbumUrlForm.vue';
 import DownloadList from './DownloadList.vue';
 import type { Album, DownloadSettings } from './AlbumPattern';
 import { bridge } from './tauri-bridge';
+import { check, type Update } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 
 const isDownloading = ref(false)
 const outputDirRef = ref("")
 const albumRef = ref<Album>()
 const settingsRef = ref<DownloadSettings>({ concurrency: 5, retries: 3, pageFetchTimeout: 30, imageDownloadTimeout: 60 })
+
+const pendingUpdate = ref<Update | null>(null)
+const updateDismissed = ref(false)
+const isUpdating = ref(false)
+
+onMounted(async () => {
+  try {
+    const update = await check()
+    if (update && localStorage.getItem('skippedVersion') !== update.version) {
+      pendingUpdate.value = update
+    }
+  } catch (e) {
+    console.warn('Update check failed:', e)
+  }
+})
+
+async function doUpdate() {
+  if (!pendingUpdate.value) return
+  isUpdating.value = true
+  await pendingUpdate.value.downloadAndInstall()
+  await relaunch()
+}
+
+function skipVersion() {
+  if (!pendingUpdate.value) return
+  localStorage.setItem('skippedVersion', pendingUpdate.value.version)
+  pendingUpdate.value = null
+}
+
+function dismissUpdate() {
+  updateDismissed.value = true
+}
 
 async function startDownloadAlbum(album: Album, settings: DownloadSettings) {
   const { outputDir, canceled } = await bridge.createOutputDirectory({ dirName: album.albumId });
@@ -29,6 +63,14 @@ async function startDownloadAlbum(album: Album, settings: DownloadSettings) {
       <div v-if="!isDownloading" key="form" class="card shadow" style="width: 100%; max-width: 560px;">
         <div class="card-header">
           <h5 class="mb-0">Douban Album Downloader</h5>
+        </div>
+        <div v-if="pendingUpdate && !updateDismissed" class="card-header d-flex align-items-center gap-2 bg-info-subtle border-bottom">
+          <span class="flex-grow-1 small">Version {{ pendingUpdate.version }} is available</span>
+          <button class="btn btn-sm btn-primary" :disabled="isUpdating" @click="doUpdate">
+            {{ isUpdating ? 'Updating…' : 'Update now' }}
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" :disabled="isUpdating" @click="skipVersion">Skip</button>
+          <button class="btn btn-sm btn-outline-secondary" :disabled="isUpdating" @click="dismissUpdate">Later</button>
         </div>
         <div class="card-body">
           <AlbumUrlForm

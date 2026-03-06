@@ -9,6 +9,8 @@
     "dialog:allow-open",
     "opener:default",
     "opener:allow-open-path",
-    "window-state:default"
+    "window-state:default",
+    "updater:default",
+    "process:allow-restart"
   ]
 }
