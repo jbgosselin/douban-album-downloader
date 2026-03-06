@@ -792,7 +792,7 @@ dependencies = [
 
 [[package]]
 name = "douban-album-downloader"
-version = "4.0.2"
+version = "4.1.0"
 dependencies = [
  "fake_user_agent",
  "reqwest",
