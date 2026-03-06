@@ -17,6 +17,8 @@ tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-window-state = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 reqwest = { version = "0.13", features = ["rustls"], default-features = false }
 tokio = { version = "1", features = ["fs", "macros"] }
 tokio-util = { version = "0.7", features = ["rt"] }
