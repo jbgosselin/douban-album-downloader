@@ -20,8 +20,6 @@
           pkgs.webkitgtk_4_1
           pkgs.libappindicator-gtk3
           pkgs.librsvg
-        ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
-          pkgs.darwin.apple_sdk.frameworks.WebKit
         ];
       };
     });
